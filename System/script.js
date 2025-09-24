@@ -1,4 +1,4 @@
-// TBM盾构机实时监控系统 - 前端JavaScript
+// TBM盾构机关键掘进参数实时预测系统 - 前端JavaScript
 
 class TBMDataMonitor {
     constructor() {
