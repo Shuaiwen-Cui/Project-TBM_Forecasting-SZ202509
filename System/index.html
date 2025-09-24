@@ -15,7 +15,11 @@
             <div class="status-indicator">
                 <span class="status-dot" id="statusDot"></span>
                 <span id="statusText">连接中...</span>
-                <span id="lastUpdate" class="last-update"></span>
+                <span id="lastUpdate" class="time-info"></span>
+                <span id="currentTime" class="time-info"></span>
+                <span id="predictionInterval" class="time-info">
+                    <i class="fas fa-clock"></i> 预测间隔: 60秒
+                </span>
             </div>
         </header>
 
@@ -30,11 +34,7 @@
                         <div class="machine-status">
                             <div class="status-item">
                                 <i class="fas fa-play-circle"></i>
-                                <span>运行状态: <span id="machineStatus">正常</span></span>
-                            </div>
-                            <div class="status-item">
-                                <i class="fas fa-clock"></i>
-                                <span>运行时间: <span id="runTime">00:00:00</span></span>
+                                <span>盾构机状态: <span id="machineStatus">休息</span></span>
                             </div>
                         </div>
                     </div>

@@ -81,6 +81,12 @@ class DataGenerator:
         self.DATA_FETCH_SECOND = 10  # 每分钟的第10秒拉取数据
         self.last_fetch_time = None  # 记录上次拉取时间，避免重复拉取
         
+        # 数据变化检测
+        self.last_fetched_data = None  # 存储上次拉取的数据，用于变化检测
+        
+        # 盾构机状态
+        self.tbm_status = 'rest'  # 'active' 或 'rest'
+        
         # 初始化API客户端和模型
         self._initialize_components()
     
@@ -239,21 +245,32 @@ class DataGenerator:
                     current_data = np.full(31, None)
                     data_sources = ['simulated'] * 31
                 
-                # 执行预测（如果有足够数据）
+                # 判定盾构机状态
+                tbm_status = self._determine_tbm_status(current_data)
+                
+                # 根据盾构机状态决定预测值
                 prediction = None
                 if self.step_count >= 5:
-                    try:
-                        prediction = self._predict_next_step()
-                    except Exception as e:
-                        print(f"⚠️  预测执行失败: {e}")
-                        prediction = None
+                    if tbm_status == 'active':
+                        # 掘进中：使用AI预测结果
+                        try:
+                            prediction = self._predict_next_step()
+                            print(f"🤖 使用AI预测结果 (掘进中)")
+                        except Exception as e:
+                            print(f"⚠️  AI预测执行失败: {e}")
+                            prediction = None
+                    else:
+                        # 休息中：使用智能填充数据
+                        prediction = self._generate_smart_fill_data(current_data)
+                        print(f"🧠 使用智能填充数据 (休息中)")
                 
                 return {
                     'current_values': current_data.tolist() if isinstance(current_data, np.ndarray) else current_data,
                     'current_sources': data_sources,
                     'prediction_values': prediction.tolist() if isinstance(prediction, np.ndarray) else prediction,
                     'step_count': self.step_count,
-                    'buffer_ready': self.step_count >= 5
+                    'buffer_ready': self.step_count >= 5,
+                    'tbm_status': tbm_status
                 }
             
             # 处理API结果
@@ -273,21 +290,33 @@ class DataGenerator:
             # 2. 更新滑动窗口缓冲区（挤掉最早的数据）
             self._update_buffer(current_data)
             
-            # 3. 执行预测（缓冲区已初始化，可以直接预测）
-            prediction = None
-            try:
-                prediction = self._predict_next_step()
-            except Exception as e:
-                print(f"⚠️  预测执行失败: {e}")
-                prediction = None
+            # 3. 判定盾构机状态
+            tbm_status = self._determine_tbm_status(current_data)
             
-            # 4. 返回当前值和预测值
+            # 4. 根据盾构机状态决定预测值
+            prediction = None
+            if self.step_count >= 5:
+                if tbm_status == 'active':
+                    # 掘进中：使用AI预测结果
+                    try:
+                        prediction = self._predict_next_step()
+                        print(f"🤖 使用AI预测结果 (掘进中)")
+                    except Exception as e:
+                        print(f"⚠️  AI预测执行失败: {e}")
+                        prediction = None
+                else:
+                    # 休息中：使用智能填充数据
+                    prediction = self._generate_smart_fill_data(current_data)
+                    print(f"🧠 使用智能填充数据 (休息中)")
+            
+            # 5. 返回当前值和预测值
             return {
                 'current_values': current_data.tolist() if isinstance(current_data, np.ndarray) else current_data,
                 'current_sources': data_sources,
                 'prediction_values': prediction.tolist() if isinstance(prediction, np.ndarray) else prediction,
                 'step_count': self.step_count,
-                'buffer_ready': self.step_count >= 5
+                'buffer_ready': self.step_count >= 5,
+                'tbm_status': tbm_status
             }
             
         except Exception as e:
@@ -541,6 +570,102 @@ class DataGenerator:
         
         return True
     
+    def _detect_data_changes(self, current_data):
+        """
+        检测数据变化并输出提示
+        
+        Args:
+            current_data: 当前拉取的数据
+            
+        Returns:
+            bool: 是否有数据变化
+        """
+        if self.last_fetched_data is None:
+            # 第一次拉取，没有比较基准
+            self.last_fetched_data = current_data.copy() if hasattr(current_data, 'copy') else current_data[:]
+            return False
+        
+        # 比较数据变化
+        changes = []
+        for i in range(min(len(current_data), len(self.last_fetched_data))):
+            if current_data[i] is not None and self.last_fetched_data[i] is not None:
+                if abs(current_data[i] - self.last_fetched_data[i]) > 1e-6:
+                    changes.append({
+                        'index': i + 1,
+                        'name': FEATURE_NAMES[i] if i < len(FEATURE_NAMES) else f'特征{i+1}',
+                        'old_value': self.last_fetched_data[i],
+                        'new_value': current_data[i],
+                        'change': current_data[i] - self.last_fetched_data[i],
+                        'change_percent': ((current_data[i] - self.last_fetched_data[i]) / abs(self.last_fetched_data[i])) * 100 if self.last_fetched_data[i] != 0 else 0
+                    })
+        
+        if changes:
+            print(f"🔄 检测到数据变化！共 {len(changes)} 个特征发生变化:")
+            for change in changes[:5]:  # 只显示前5个变化
+                direction = "↗️" if change['change'] > 0 else "↘️"
+                print(f"   {direction} {change['name']}: {change['old_value']:.6f} → {change['new_value']:.6f} "
+                      f"({change['change']:+.6f}, {change['change_percent']:+.1f}%)")
+            
+            if len(changes) > 5:
+                print(f"   ... 还有 {len(changes) - 5} 个特征发生变化")
+            
+            # 更新存储的数据
+            self.last_fetched_data = current_data.copy() if hasattr(current_data, 'copy') else current_data[:]
+            return True
+        else:
+            print("📊 数据无变化")
+            return False
+    
+    def _determine_tbm_status(self, current_data):
+        """
+        根据刀盘扭矩判定盾构机状态
+        
+        Args:
+            current_data: 当前数据数组（31个特征）
+            
+        Returns:
+            str: 'active' (掘进中) 或 'rest' (休息)
+        """
+        if current_data is None or len(current_data) < 21:
+            self.tbm_status = 'rest'
+            return 'rest'
+        
+        # 刀盘扭矩是第21个特征（索引20）
+        torque_value = current_data[20]
+        
+        if torque_value is not None and torque_value > 0:
+            if self.tbm_status != 'active':
+                print(f"🔧 盾构机状态: 休息 → 掘进中 (刀盘扭矩: {torque_value:.2f} kN·m)")
+            self.tbm_status = 'active'
+            return 'active'
+        else:
+            if self.tbm_status != 'rest':
+                print(f"🔧 盾构机状态: 掘进中 → 休息 (刀盘扭矩: {torque_value if torque_value is not None else 'None'})")
+            self.tbm_status = 'rest'
+            return 'rest'
+    
+    def _generate_smart_fill_data(self, current_data):
+        """
+        生成智能填充数据（当盾构机休息时使用）
+        
+        Args:
+            current_data: 当前数据数组
+            
+        Returns:
+            np.ndarray: 智能填充的31个特征值
+        """
+        filled_data = []
+        
+        for i in range(31):
+            if current_data[i] is not None:
+                # 有真实数据，使用真实数据
+                filled_data.append(current_data[i])
+            else:
+                # 无真实数据，使用智能填充
+                filled_data.append(self._generate_realistic_value(i))
+        
+        return np.array(filled_data)
+    
     def _update_buffer(self, new_data):
         """更新滑动窗口缓冲区 - 与main.py逻辑一致"""
         # 左移数据
@@ -604,6 +729,10 @@ def data_collection_thread():
             else:
                 print(f"⚠️  数据格式错误: {type(data_result)}")
                 current_data = [None] * 31
+            
+            # 检测数据变化
+            if current_data and len(current_data) == 31:
+                data_generator._detect_data_changes(current_data)
             
             # 更新全局数据
             last_data = {

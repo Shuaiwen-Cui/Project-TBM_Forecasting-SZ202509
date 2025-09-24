@@ -19,6 +19,7 @@ class TBMDataMonitor {
         this.renderDataTable();
         this.startMonitoring();
         this.updateStatus('connecting');
+        this.startCurrentTimeUpdate();
     }
 
     // 设置事件监听器
@@ -67,12 +68,12 @@ class TBMDataMonitor {
     startMonitoring() {
         this.isRunning = true;
         
-        // 每30秒更新一次数据（提高刷新频率）
+        // 每60秒更新一次数据（与main.py保持一致）
         this.updateInterval = setInterval(() => {
             if (!this.paused) {
                 this.fetchData();
             }
-        }, 30000); // 每30秒更新一次数据
+        }, 60000); // 每60秒更新一次数据
 
         // 立即获取一次数据
         this.fetchData();
@@ -196,8 +197,8 @@ class TBMDataMonitor {
         // 更新统计信息
         this.updateStats(validCount, missingCount, predictedCount);
         
-        // 更新运行时间和步骤信息
-        this.updateRunTime();
+        // 更新盾构机状态和步骤信息
+        this.updateTBMStatusFromBackend(data.tbm_status);
         this.updateStepInfo(stepCount, bufferReady);
         
         // 保存当前数据用于趋势计算
@@ -532,15 +533,41 @@ class TBMDataMonitor {
     }
 
     // 更新运行时间
-    updateRunTime() {
+    // 开始当前时间更新
+    startCurrentTimeUpdate() {
+        this.updateCurrentTime();
+        // 每秒更新一次当前时间
+        setInterval(() => {
+            this.updateCurrentTime();
+        }, 1000);
+    }
+    
+    // 更新当前时间显示
+    updateCurrentTime() {
         const now = new Date();
-        const diff = now - this.startTime;
-        const hours = Math.floor(diff / 3600000);
-        const minutes = Math.floor((diff % 3600000) / 60000);
-        const seconds = Math.floor((diff % 60000) / 1000);
+        const timeString = now.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        document.getElementById('currentTime').innerHTML = `<i class="fas fa-clock"></i> 当前时间: ${timeString}`;
+    }
+    
+    // 更新盾构机状态（基于后端判定结果）
+    updateTBMStatusFromBackend(tbmStatus) {
+        const machineStatusElement = document.getElementById('machineStatus');
         
-        const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        document.getElementById('runTime').textContent = timeString;
+        if (tbmStatus === 'active') {
+            machineStatusElement.textContent = '掘进中';
+            machineStatusElement.className = 'status-active';
+        } else {
+            machineStatusElement.textContent = '休息';
+            machineStatusElement.className = 'status-rest';
+        }
     }
     
     // 更新步骤信息
@@ -569,15 +596,15 @@ class TBMDataMonitor {
         switch (status) {
             case 'connected':
                 statusText.textContent = '已连接';
-                lastUpdate.textContent = `最后更新: ${new Date().toLocaleTimeString()}`;
+                lastUpdate.innerHTML = `<i class="fas fa-sync-alt"></i> 最后更新: ${new Date().toLocaleTimeString()}`;
                 break;
             case 'connecting':
                 statusText.textContent = '连接中...';
-                lastUpdate.textContent = '';
+                lastUpdate.innerHTML = '';
                 break;
             case 'error':
                 statusText.textContent = '连接错误';
-                lastUpdate.textContent = `错误时间: ${new Date().toLocaleTimeString()}`;
+                lastUpdate.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 错误时间: ${new Date().toLocaleTimeString()}`;
                 break;
         }
     }
