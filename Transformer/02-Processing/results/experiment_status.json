@@ -1,0 +1,585 @@
+{
+  "tasks": {
+    "ARIMA_6_1": {
+      "model": "ARIMA",
+      "seq_len": 6,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-04T23:21:24.970479",
+      "updated_at": "2026-02-04T23:27:45.737914",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_6_6": {
+      "model": "ARIMA",
+      "seq_len": 6,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-04T23:27:45.906123",
+      "updated_at": "2026-02-04T23:34:16.936310",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_6_120": {
+      "model": "ARIMA",
+      "seq_len": 6,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-04T23:34:17.107315",
+      "updated_at": "2026-02-04T23:45:52.858027",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_6_360": {
+      "model": "ARIMA",
+      "seq_len": 6,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-04T23:45:53.374116",
+      "updated_at": "2026-02-05T00:07:54.395496",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_60_1": {
+      "model": "ARIMA",
+      "seq_len": 60,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T00:07:54.678834",
+      "updated_at": "2026-02-05T00:14:21.921512",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_60_6": {
+      "model": "ARIMA",
+      "seq_len": 60,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T00:14:22.101774",
+      "updated_at": "2026-02-05T00:21:00.468393",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_60_120": {
+      "model": "ARIMA",
+      "seq_len": 60,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T00:21:00.624352",
+      "updated_at": "2026-02-05T00:32:55.856746",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_60_360": {
+      "model": "ARIMA",
+      "seq_len": 60,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T00:32:56.081283",
+      "updated_at": "2026-02-05T00:54:46.733806",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_120_1": {
+      "model": "ARIMA",
+      "seq_len": 120,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T00:54:47.045993",
+      "updated_at": "2026-02-05T01:01:14.111197",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_120_6": {
+      "model": "ARIMA",
+      "seq_len": 120,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T01:01:14.299470",
+      "updated_at": "2026-02-05T01:07:56.245122",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_120_120": {
+      "model": "ARIMA",
+      "seq_len": 120,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T01:07:56.535973",
+      "updated_at": "2026-02-05T01:19:54.382524",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_120_360": {
+      "model": "ARIMA",
+      "seq_len": 120,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T01:19:54.612487",
+      "updated_at": "2026-02-05T01:41:32.415706",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_360_1": {
+      "model": "ARIMA",
+      "seq_len": 360,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T01:41:32.657738",
+      "updated_at": "2026-02-05T01:47:53.412888",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_360_6": {
+      "model": "ARIMA",
+      "seq_len": 360,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T01:47:53.654635",
+      "updated_at": "2026-02-05T01:54:22.009521",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_360_120": {
+      "model": "ARIMA",
+      "seq_len": 360,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T01:54:22.268232",
+      "updated_at": "2026-02-05T02:05:38.982814",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "ARIMA_360_360": {
+      "model": "ARIMA",
+      "seq_len": 360,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T02:05:39.244809",
+      "updated_at": "2026-02-05T02:27:08.780045",
+      "error": "ARIMAModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "LSTM_6_1": {
+      "model": "LSTM",
+      "seq_len": 6,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T02:27:09.079702",
+      "updated_at": "2026-02-05T02:27:55.281413",
+      "error": "LSTMModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "LSTM_6_6": {
+      "model": "LSTM",
+      "seq_len": 6,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T02:27:55.284093",
+      "updated_at": "2026-02-05T02:27:55.862249",
+      "error": "mat1 and mat2 shapes cannot be multiplied (64x32 and 64x32)"
+    },
+    "LSTM_6_120": {
+      "model": "LSTM",
+      "seq_len": 6,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T02:27:55.868084",
+      "updated_at": "2026-02-05T02:27:56.749847",
+      "error": "mat1 and mat2 shapes cannot be multiplied (64x32 and 64x32)"
+    },
+    "LSTM_6_360": {
+      "model": "LSTM",
+      "seq_len": 6,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T02:27:56.772727",
+      "updated_at": "2026-02-05T02:27:58.421001",
+      "error": "mat1 and mat2 shapes cannot be multiplied (64x32 and 64x32)"
+    },
+    "LSTM_60_1": {
+      "model": "LSTM",
+      "seq_len": 60,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T02:27:58.632976",
+      "updated_at": "2026-02-05T02:32:01.512422",
+      "error": "LSTMModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "LSTM_60_6": {
+      "model": "LSTM",
+      "seq_len": 60,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T02:32:01.526249",
+      "updated_at": "2026-02-05T02:32:02.277633",
+      "error": "mat1 and mat2 shapes cannot be multiplied (64x32 and 64x32)"
+    },
+    "LSTM_60_120": {
+      "model": "LSTM",
+      "seq_len": 60,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T02:32:02.290722",
+      "updated_at": "2026-02-05T02:32:03.415756",
+      "error": "mat1 and mat2 shapes cannot be multiplied (64x32 and 64x32)"
+    },
+    "LSTM_60_360": {
+      "model": "LSTM",
+      "seq_len": 60,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T02:32:03.445944",
+      "updated_at": "2026-02-05T02:32:05.277961",
+      "error": "mat1 and mat2 shapes cannot be multiplied (64x32 and 64x32)"
+    },
+    "LSTM_120_1": {
+      "model": "LSTM",
+      "seq_len": 120,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T02:32:05.355248",
+      "updated_at": "2026-02-05T02:39:33.313872",
+      "error": "LSTMModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "LSTM_120_6": {
+      "model": "LSTM",
+      "seq_len": 120,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T02:39:33.341014",
+      "updated_at": "2026-02-05T02:39:34.308525",
+      "error": "mat1 and mat2 shapes cannot be multiplied (64x32 and 64x32)"
+    },
+    "LSTM_120_120": {
+      "model": "LSTM",
+      "seq_len": 120,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T02:39:34.335428",
+      "updated_at": "2026-02-05T02:39:35.644021",
+      "error": "mat1 and mat2 shapes cannot be multiplied (64x32 and 64x32)"
+    },
+    "LSTM_120_360": {
+      "model": "LSTM",
+      "seq_len": 120,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T02:39:35.686716",
+      "updated_at": "2026-02-05T02:39:37.586058",
+      "error": "mat1 and mat2 shapes cannot be multiplied (64x32 and 64x32)"
+    },
+    "LSTM_360_1": {
+      "model": "LSTM",
+      "seq_len": 360,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T02:39:37.668095",
+      "updated_at": "2026-02-05T03:00:16.091831",
+      "error": "LSTMModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "LSTM_360_6": {
+      "model": "LSTM",
+      "seq_len": 360,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T03:00:16.179433",
+      "updated_at": "2026-02-05T03:00:18.367528",
+      "error": "mat1 and mat2 shapes cannot be multiplied (64x32 and 64x32)"
+    },
+    "LSTM_360_120": {
+      "model": "LSTM",
+      "seq_len": 360,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T03:00:18.564921",
+      "updated_at": "2026-02-05T03:00:21.000401",
+      "error": "mat1 and mat2 shapes cannot be multiplied (64x32 and 64x32)"
+    },
+    "LSTM_360_360": {
+      "model": "LSTM",
+      "seq_len": 360,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T03:00:21.126754",
+      "updated_at": "2026-02-05T03:00:25.074925",
+      "error": "mat1 and mat2 shapes cannot be multiplied (64x32 and 64x32)"
+    },
+    "1D-CNN_6_1": {
+      "model": "1D-CNN",
+      "seq_len": 6,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T03:00:25.307757",
+      "updated_at": "2026-02-05T03:00:49.472675",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_6_6": {
+      "model": "1D-CNN",
+      "seq_len": 6,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T03:00:49.475289",
+      "updated_at": "2026-02-05T03:01:14.721031",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_6_120": {
+      "model": "1D-CNN",
+      "seq_len": 6,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T03:01:14.727484",
+      "updated_at": "2026-02-05T03:02:01.808514",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_6_360": {
+      "model": "1D-CNN",
+      "seq_len": 6,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T03:02:01.833161",
+      "updated_at": "2026-02-05T03:03:52.960638",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_60_1": {
+      "model": "1D-CNN",
+      "seq_len": 60,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T03:03:53.034169",
+      "updated_at": "2026-02-05T03:04:47.271227",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_60_6": {
+      "model": "1D-CNN",
+      "seq_len": 60,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T03:04:47.287453",
+      "updated_at": "2026-02-05T03:05:43.854118",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_60_120": {
+      "model": "1D-CNN",
+      "seq_len": 60,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T03:05:43.868690",
+      "updated_at": "2026-02-05T03:07:02.580343",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_60_360": {
+      "model": "1D-CNN",
+      "seq_len": 60,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T03:07:02.618180",
+      "updated_at": "2026-02-05T03:09:25.466565",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_120_1": {
+      "model": "1D-CNN",
+      "seq_len": 120,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T03:09:25.708081",
+      "updated_at": "2026-02-05T03:10:58.004735",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_120_6": {
+      "model": "1D-CNN",
+      "seq_len": 120,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T03:10:58.033169",
+      "updated_at": "2026-02-05T03:12:31.729141",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_120_120": {
+      "model": "1D-CNN",
+      "seq_len": 120,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T03:12:31.760399",
+      "updated_at": "2026-02-05T03:14:32.045736",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_120_360": {
+      "model": "1D-CNN",
+      "seq_len": 120,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T03:14:32.094075",
+      "updated_at": "2026-02-05T03:17:31.676681",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_360_1": {
+      "model": "1D-CNN",
+      "seq_len": 360,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T03:17:31.830333",
+      "updated_at": "2026-02-05T03:22:03.079204",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_360_6": {
+      "model": "1D-CNN",
+      "seq_len": 360,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T03:22:03.151651",
+      "updated_at": "2026-02-05T03:26:35.475059",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_360_120": {
+      "model": "1D-CNN",
+      "seq_len": 360,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T03:26:35.549950",
+      "updated_at": "2026-02-05T03:31:29.295823",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "1D-CNN_360_360": {
+      "model": "1D-CNN",
+      "seq_len": 360,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T03:31:29.411279",
+      "updated_at": "2026-02-05T03:37:17.579501",
+      "error": "CNN1DModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_6_1": {
+      "model": "Transformer",
+      "seq_len": 6,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T03:37:17.775004",
+      "updated_at": "2026-02-05T03:38:35.787372",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_6_6": {
+      "model": "Transformer",
+      "seq_len": 6,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T03:38:35.791216",
+      "updated_at": "2026-02-05T03:39:51.763820",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_6_120": {
+      "model": "Transformer",
+      "seq_len": 6,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T03:39:51.887379",
+      "updated_at": "2026-02-05T03:41:33.080852",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_6_360": {
+      "model": "Transformer",
+      "seq_len": 6,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T03:41:33.103473",
+      "updated_at": "2026-02-05T03:44:18.603204",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_60_1": {
+      "model": "Transformer",
+      "seq_len": 60,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T03:44:18.671938",
+      "updated_at": "2026-02-05T03:48:16.250054",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_60_6": {
+      "model": "Transformer",
+      "seq_len": 60,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T03:48:16.264020",
+      "updated_at": "2026-02-05T03:52:14.443378",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_60_120": {
+      "model": "Transformer",
+      "seq_len": 60,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T03:52:14.459451",
+      "updated_at": "2026-02-05T03:56:39.312491",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_60_360": {
+      "model": "Transformer",
+      "seq_len": 60,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T03:56:39.348074",
+      "updated_at": "2026-02-05T04:02:05.051236",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_120_1": {
+      "model": "Transformer",
+      "seq_len": 120,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T04:02:05.118635",
+      "updated_at": "2026-02-05T04:10:20.391485",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_120_6": {
+      "model": "Transformer",
+      "seq_len": 120,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T04:10:20.418498",
+      "updated_at": "2026-02-05T04:18:39.319942",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_120_120": {
+      "model": "Transformer",
+      "seq_len": 120,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T04:18:39.407923",
+      "updated_at": "2026-02-05T04:27:22.201900",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_120_360": {
+      "model": "Transformer",
+      "seq_len": 120,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T04:27:22.262734",
+      "updated_at": "2026-02-05T04:37:02.669904",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_360_1": {
+      "model": "Transformer",
+      "seq_len": 360,
+      "pred_len": 1,
+      "status": "failed",
+      "created_at": "2026-02-05T04:37:02.851556",
+      "updated_at": "2026-02-05T05:34:22.613620",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_360_6": {
+      "model": "Transformer",
+      "seq_len": 360,
+      "pred_len": 6,
+      "status": "failed",
+      "created_at": "2026-02-05T05:34:22.720013",
+      "updated_at": "2026-02-05T06:31:18.452363",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_360_120": {
+      "model": "Transformer",
+      "seq_len": 360,
+      "pred_len": 120,
+      "status": "failed",
+      "created_at": "2026-02-05T06:31:18.583798",
+      "updated_at": "2026-02-05T07:29:05.745834",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    },
+    "Transformer_360_360": {
+      "model": "Transformer",
+      "seq_len": 360,
+      "pred_len": 360,
+      "status": "failed",
+      "created_at": "2026-02-05T07:29:05.968383",
+      "updated_at": "2026-02-05T08:28:59.697493",
+      "error": "TransformerModel.predict() got multiple values for argument 'pred_len'"
+    }
+  },
+  "last_update": "2026-02-05T08:28:59.697493",
+  "total": 0,
+  "completed": 0,
+  "failed": 0,
+  "pending": 0
+}
