@@ -43,6 +43,11 @@ class LSTMModel(BaseModel):
         batch_size = kwargs.get('batch_size', 64)
         epochs = kwargs.get('epochs', 20)
         dropout = kwargs.get('dropout', 0.1)
+        seed = kwargs.get('random_seed', 42)
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
         
         # 保存维度信息
         self.n_features = X_train.shape[-1]

@@ -105,12 +105,21 @@ python -c "from pathlib import Path; from config import DATA_FILE; print(f'数�
 ### 4. 运行实验
 
 ```bash
+# 仅运行未完成的实验（默认，跳过已有结果）
 python run_experiments.py
+# 或
+python run_experiments.py --resume
+
+# 全部执行并覆盖已有结果（便于论文分析）
+python run_experiments.py --overwrite
+# 或
+python run_experiments.py -f
 ```
 
 这会：
 - 自动运行所有64个实验
-- 自动跳过已完成的实验（支持断点续跑）
+- **默认**：仅运行未完成的（跳过已有），支持断点续跑
+- **加 `--overwrite` / `-f`**：全部执行并覆盖已有结果，便于论文分析
 - 每个实验独立加载数据，用完即释放（节省内存）
 - 记录所有关键数据（基于plan.txt的评估指标）
 
@@ -157,12 +166,11 @@ python analyze_results.py
 3. **及时清理**: 每10个实验主动清理内存
 4. **float32**: 统一使用float32数据类型
 
-## 断点续跑
+## 覆盖与断点续跑
 
-框架支持断点续跑：
-- 如果程序中断，重新运行会自动跳过已完成的实验
-- 状态保存在 `results/experiment_status.json`
-- 可以使用 `skip_existing=True` 参数控制是否跳过已完成的实验
+- **默认**（`python run_experiments.py` 或 `--resume`）：仅运行未完成的实验，跳过已有结果，支持断点续跑。
+- **覆盖模式**（`python run_experiments.py --overwrite` 或 `-f`）：全部执行并覆盖已有 pkl 与汇总表，便于论文分析。
+- 状态保存在 `results/experiment_status.json`。
 
 ## 注意事项
 

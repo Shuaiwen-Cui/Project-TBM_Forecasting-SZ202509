@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-论文图片生成脚本
-生成论文中最重要的8个对比分析图表
+论文图片生成脚本 - 生成论文中规划的16张图
+对应 论文.md 中图1～图16，输出到 03-Comparison/figures/fig01_*.png ... fig16_*.png
 """
 
 import os
@@ -14,119 +14,118 @@ import matplotlib.pyplot as plt
 import matplotlib
 import seaborn as sns
 from pathlib import Path
-from matplotlib import font_manager
+from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 import warnings
 warnings.filterwarnings('ignore')
 
 # =============================================================================
-# 配置参数（放在前面，方便调整）
+# 配置参数
 # =============================================================================
 
-# 路径配置
 BASE_DIR = Path(__file__).parent.parent
 RESULTS_DIR = BASE_DIR / '02-Processing' / 'results'
+DATA_PREPROCESSED = BASE_DIR / '01-Preprocessing' / 'data_preprocessed.csv'
 OUTPUT_DIR = BASE_DIR / '03-Comparison' / 'figures'
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# 数据文件路径
-CSV_FILE = RESULTS_DIR / 'experiment_summary.csv'  # 数据来源：实验汇总表
-PKL_DIR = RESULTS_DIR  # 数据来源：实验结果PKL文件目录
+CSV_FILE = RESULTS_DIR / 'experiment_summary.csv'
+PKL_DIR = RESULTS_DIR
+METADATA_COLS = 5  # 与 02-Processing/config 一致
 
-# 字体配置
-CHINESE_FONT = 'SimSun'  # 宋体
-ENGLISH_FONT = 'Times New Roman'  # Times字体
-FONT_SIZE_TITLE = 16  # 标题字体大小
-FONT_SIZE_LABEL = 14  # 坐标轴标签字体大小
-FONT_SIZE_TICK = 12  # 刻度字体大小
-FONT_SIZE_LEGEND = 12  # 图例字体大小
-FONT_SIZE_SUPTITLE = 18  # 总标题字体大小
+# 字体：中文宋体，其他一律 Times New Roman（符合投稿要求）
+CHINESE_FONT = 'SimSun'
+ENGLISH_FONT = 'Times New Roman'
+FONT_SIZE_TITLE = 10
+FONT_SIZE_LABEL = 9
+FONT_SIZE_TICK = 8
+FONT_SIZE_LEGEND = 8
+FONT_SIZE_PANEL = 10   # 子图标签 (a)(b)(c) 用 Times New Roman Bold
 
-# 图片配置
-DPI = 300  # 图片分辨率
-FIG_SIZE = (10, 6)  # 默认图片大小（宽，高）
-FIG_SIZE_WIDE = (14, 6)  # 宽图
-FIG_SIZE_TALL = (8, 10)  # 高图
+# 双栏论文：单栏宽约 89 mm = 3.5 inch，全栏 183 mm ≈ 7.2 inch
+COL_WIDTH_INCH = 3.5
+DPI = 600
+# 单图高度约 2.0–2.5 inch；多行一列时每行约 2.0 inch
+FIG_H_SINGLE = 2.2
+FIG_H_PANEL = 2.0
 
-# 颜色配置
+# 配色再淡一点（更浅的 pastel）
 COLORS = {
-    'ARIMA': '#1f77b4',      # 蓝色
-    'LSTM': '#ff7f0e',       # 橙色
-    '1D-CNN': '#2ca02c',     # 绿色
-    'Transformer': '#d62728' # 红色
+    'ARIMA': '#7EB8DA',      # 淡蓝
+    'LSTM': '#F0C674',       # 淡橙
+    '1D-CNN': '#7ED4B3',     # 淡绿
+    'Transformer': '#E8C4E0' # 淡紫
 }
+# 图1 竖排示意图用更浅色
+COLORS_LIGHT = {
+    'ARIMA': '#B8D4E8',
+    'LSTM': '#F5E0B0',
+    '1D-CNN': '#B8E8D4',
+    'Transformer': '#F0DCE8'
+}
+# 热力图与散点图用相同顺序
+CMAP_heatmap = 'RdYlGn'  # 或 'viridis'；保持 R² 红绿语义
+CMAP_corr = 'RdBu_r'
+GREY_TRUE = '#333333'  # 真实值曲线用深灰
 
 MODEL_NAMES = ['ARIMA', 'LSTM', '1D-CNN', 'Transformer']
-MODEL_NAMES_CN = {
-    'ARIMA': 'ARIMA',
-    'LSTM': 'LSTM',
-    '1D-CNN': '1D-CNN',
-    'Transformer': 'Transformer'
-}
+MODEL_NAMES_CN = {'ARIMA': 'ARIMA', 'LSTM': 'LSTM', '1D-CNN': '1D-CNN', 'Transformer': 'Transformer'}
 
-# 序列长度和预测长度配置
 SEQ_LENGTHS = [6, 60, 120, 360]
 PRED_LENGTHS = [1, 6, 120, 360]
 SEQ_LABELS = ['6步\n(0.5分钟)', '60步\n(5分钟)', '120步\n(10分钟)', '360步\n(30分钟)']
 PRED_LABELS = ['1步\n(5秒)', '6步\n(0.5分钟)', '120步\n(10分钟)', '360步\n(30分钟)']
 
-# PKL文件配置（用于预测效果图）
-# 注意：特征索引将从PKL文件中的feature_mapping自动获取，如果PKL文件中没有，则使用以下默认值
 PKL_CONFIG = {
-    'seq_len': 60,  # 代表性序列长度
-    'pred_len': 1,  # 代表性预测长度
-    'feature_indices': {
-        '贯入度': 0,  # 默认值，实际会从PKL文件的feature_mapping中读取
-        '推进压力': 1,  # 默认值，实际会从PKL文件的feature_mapping中读取
-        '刀盘转速': 20  # 默认值，实际会从PKL文件的feature_mapping中读取（注意：应该是20，不是18）
-    },
-    'sample_range': (0, 500)  # 展示的样本范围（从测试集中选择前500个样本）
+    'seq_len': 60,
+    'pred_len': 1,
+    'feature_indices': {'贯入度': 0, '推进压力': 1, '刀盘转速': 20},
+    'sample_range': (0, 500)
 }
 
-# =============================================================================
-# 字体设置
-# =============================================================================
-
 def setup_fonts():
-    """设置中英文字体"""
-    plt.rcParams['font.sans-serif'] = [CHINESE_FONT, 'Arial Unicode MS', 'DejaVu Sans']
+    plt.rcParams['font.sans-serif'] = [CHINESE_FONT, 'SimHei', 'DejaVu Sans']
     plt.rcParams['font.serif'] = [ENGLISH_FONT, 'Times', 'DejaVu Serif']
     plt.rcParams['axes.unicode_minus'] = False
     plt.rcParams['figure.dpi'] = DPI
     plt.rcParams['savefig.dpi'] = DPI
     plt.rcParams['savefig.bbox'] = 'tight'
-    sns.set_style("whitegrid")
-    sns.set_palette("husl")
+    plt.rcParams['axes.linewidth'] = 0.8
+    plt.rcParams['xtick.major.width'] = 0.8
+    plt.rcParams['ytick.major.width'] = 0.8
+    plt.rcParams['xtick.major.size'] = 2.5
+    plt.rcParams['ytick.major.size'] = 2.5
+    plt.rcParams['font.size'] = FONT_SIZE_TICK
+    plt.rcParams['axes.titlesize'] = FONT_SIZE_TITLE
+    plt.rcParams['axes.labelsize'] = FONT_SIZE_LABEL
+    plt.rcParams['xtick.labelsize'] = FONT_SIZE_TICK
+    plt.rcParams['ytick.labelsize'] = FONT_SIZE_TICK
+    plt.rcParams['legend.fontsize'] = FONT_SIZE_LEGEND
+    # 纯白底、无网格或极淡网格，Nature/Science 风格
+    plt.rcParams['axes.facecolor'] = 'white'
+    plt.rcParams['figure.facecolor'] = 'white'
+    plt.rcParams['axes.grid'] = False
+    sns.set_style("white", {'axes.edgecolor': '.15', 'grid.color': '.9'})
 
-def set_ticklabels_bold(ax):
-    """为坐标轴刻度标签添加加粗"""
-    for label in ax.get_xticklabels():
-        label.set_fontweight('bold')
-    for label in ax.get_yticklabels():
-        label.set_fontweight('bold')
-
-# =============================================================================
-# 数据加载
-# =============================================================================
+def style_axis(ax, panel_label=None, tick_fontsize=None):
+    """统一坐标轴样式；刻度数字用 Times New Roman；子图标签 (a)(b)(c) 用 Times New Roman Bold。"""
+    size = tick_fontsize if tick_fontsize is not None else FONT_SIZE_TICK
+    ax.tick_params(axis='both', which='major', direction='out', labelsize=size)
+    for spine in ax.spines.values():
+        spine.set_linewidth(0.8)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_fontfamily(ENGLISH_FONT)
+    if panel_label is not None:
+        ax.text(0.02, 0.98, panel_label, transform=ax.transAxes, fontsize=FONT_SIZE_PANEL,
+                fontweight='bold', va='top', ha='left', fontfamily=ENGLISH_FONT)
 
 def load_data():
-    """
-    加载实验数据
-    数据来源：Transformer/02-Processing/results/experiment_summary.csv
-    包含64个实验组合的结果（4种模型 × 4种序列长度 × 4种预测长度）
-    """
     if not CSV_FILE.exists():
         raise FileNotFoundError(f"数据文件不存在: {CSV_FILE}")
-    
     df = pd.read_csv(CSV_FILE)
-    print(f"已加载数据: {len(df)} 条实验记录")
+    print(f"已加载实验汇总: {len(df)} 条")
     return df
 
 def load_pkl_data(model_name, seq_len, pred_len):
-    """
-    加载PKL文件数据
-    数据来源：Transformer/02-Processing/results/{model_name}_{seq_len}_{pred_len}_results.pkl
-    包含：y_true, y_pred, y_true_inv, y_pred_inv等预测结果数据
-    """
     pkl_file = PKL_DIR / f'{model_name}_{seq_len}_{pred_len}_results.pkl'
     if not pkl_file.exists():
         return None
@@ -134,538 +133,464 @@ def load_pkl_data(model_name, seq_len, pred_len):
         data = pickle.load(f)
     return data
 
-# =============================================================================
-# 图片生成函数（8个最重要的图片）
-# =============================================================================
+def _get_series_from_pkl(data, key, feat_idx, start, end):
+    """从 pkl 的 y_true_inv 或 y_pred_inv 取出单特征序列。形状为 (N*T, F) 或 (N, F)。"""
+    y = data.get(key)
+    if y is None:
+        return None
+    if y.ndim == 3:
+        y = y[:, 0, :]  # 取第一个预测步
+    return y[start:end, feat_idx].flatten()
 
-def figure1_model_accuracy_comparison(df):
-    """
-    图1：四种模型预测精度对比
-    数据来源：experiment_summary.csv
-    - R²值：df.groupby('model')['R2'].mean()
-    - MSE、MAE、RMSE：df.groupby('model')[metric].mean()
-    展示4个子图：R²、MSE、MAE、RMSE
-    """
-    fig, axes = plt.subplots(4, 1, figsize=(10, 14))
-    
-    metrics = ['R2', 'MSE', 'MAE', 'RMSE']
-    metric_names = ['R²', 'MSE', 'MAE', 'RMSE']
-    metric_titles = ['R²值', 'MSE', 'MAE', 'RMSE']
-    
-    for idx, (metric, name, title) in enumerate(zip(metrics, metric_names, metric_titles)):
+# -----------------------------------------------------------------------------
+# 图1：四种预测模型架构对比示意图（第3.3节）— 竖着画四个，配色浅
+# -----------------------------------------------------------------------------
+def fig01_architecture():
+    titles = ['ARIMA', 'LSTM', '1D-CNN', 'Transformer']
+    descs = ['自回归+滑动平均\n线性/平稳序列', '门控循环单元\n长时依赖', '一维卷积\n局部特征', '自注意力\n全局依赖']
+    colors = [COLORS_LIGHT['ARIMA'], COLORS_LIGHT['LSTM'], COLORS_LIGHT['1D-CNN'], COLORS_LIGHT['Transformer']]
+    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_PANEL * 4))
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 4)
+    ax.axis('off')
+    box_h, gap = 0.78, 0.06
+    for i, (t, d) in enumerate(zip(titles, descs)):
+        y_bottom = 3 - i * (box_h + gap)
+        box = FancyBboxPatch((0.08, y_bottom), 0.84, box_h, boxstyle="round,pad=0.02",
+                             facecolor=colors[i], edgecolor='.35', linewidth=0.6, alpha=0.9)
+        ax.add_patch(box)
+        ax.text(0.5, y_bottom + box_h * 0.68, t, ha='center', va='center', fontsize=FONT_SIZE_TITLE,
+                fontweight='bold', fontfamily=ENGLISH_FONT)
+        ax.text(0.5, y_bottom + box_h * 0.35, d, ha='center', va='center', fontsize=FONT_SIZE_TICK - 1,
+                fontfamily=CHINESE_FONT)
+    ax.set_title('四种预测模型架构对比', fontsize=FONT_SIZE_TITLE, fontfamily=CHINESE_FONT)
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / 'fig01_architecture.png', dpi=DPI, bbox_inches='tight')
+    plt.close()
+    print("已生成: fig01_architecture.png")
+
+# -----------------------------------------------------------------------------
+# 图2：数据集统计信息与参数分布（第3.2.1节）
+# -----------------------------------------------------------------------------
+def fig02_dataset():
+    if not DATA_PREPROCESSED.exists():
+        print("警告: data_preprocessed.csv 不存在，跳过图2")
+        return
+    df = pd.read_csv(DATA_PREPROCESSED, encoding='utf-8-sig', low_memory=False)
+    if len(df) > 2:
+        df = df.iloc[2:].reset_index(drop=True)
+    numeric_cols = df.columns[METADATA_COLS:]
+    for c in numeric_cols:
+        df[c] = pd.to_numeric(df[c], errors='coerce')
+    df_num = df[numeric_cols].ffill().bfill()
+    n_samples, n_features = df_num.shape
+
+    fig, axes = plt.subplots(2, 1, figsize=(COL_WIDTH_INCH, FIG_H_PANEL * 2))
+    # (a) 样本量与特征数 — 不放 (a) 文字，仅叙述；数字用 Times
+    ax = axes[0]
+    ax.bar([0], [n_samples], color=COLORS['ARIMA'], edgecolor='.3', linewidth=0.6, width=0.5)
+    ax.bar([1], [n_features], color=COLORS['1D-CNN'], edgecolor='.3', linewidth=0.6, width=0.5)
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(['样本数', '特征数'], fontfamily=CHINESE_FONT)
+    ax.set_ylabel('数量（Number）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    style_axis(ax)
+    ax.set_xticklabels(['样本数', '特征数'], fontfamily=CHINESE_FONT)  # 覆盖 style_axis 对 x 刻度的 Times 设置
+
+    # (b) 参数相关性热力图 — 横轴刻度错开避免重叠（间隔显示或旋转）
+    ax = axes[1]
+    sub = df_num.iloc[:, :min(15, n_features)]
+    corr = sub.corr()
+    nf = len(sub.columns)
+    im = ax.imshow(corr, cmap=CMAP_corr, aspect='auto', vmin=-1, vmax=1)
+    step = max(1, nf // 6)  # 约 6 个刻度，避免重叠
+    xticks = list(range(0, nf, step))
+    if (nf - 1) not in xticks:
+        xticks.append(nf - 1)
+    ax.set_xticks(xticks)
+    ax.set_yticks(range(nf))
+    ax.set_xticklabels([f'F{xt+1}' for xt in xticks], fontfamily=ENGLISH_FONT, fontsize=FONT_SIZE_TICK - 1)
+    ax.set_yticklabels([f'F{i+1}' for i in range(nf)], fontfamily=ENGLISH_FONT, fontsize=FONT_SIZE_TICK - 1)
+    ax.set_xlabel('参数（Parameter）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    cbar = plt.colorbar(im, ax=ax, shrink=0.8)
+    cbar.ax.tick_params(labelsize=FONT_SIZE_TICK)
+    for t in cbar.ax.get_yticklabels():
+        t.set_fontfamily(ENGLISH_FONT)
+    style_axis(ax, '(b)')
+
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / 'fig02_dataset.png', dpi=DPI, bbox_inches='tight')
+    plt.close()
+    print("已生成: fig02_dataset.png")
+
+# -----------------------------------------------------------------------------
+# 图3：四种模型预测精度对比（R²）（第5.1.1节）
+# -----------------------------------------------------------------------------
+def fig03_accuracy_r2(df):
+    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_SINGLE))
+    model_r2 = df.groupby('model')['R2'].mean().reindex(MODEL_NAMES)
+    x = np.arange(4)
+    bars = ax.bar(x, model_r2.values, color=[COLORS[m] for m in MODEL_NAMES], edgecolor='.3', linewidth=0.5, width=0.65)
+    for bar, val in zip(bars, model_r2.values):
+        ax.text(bar.get_x() + bar.get_width()/2, val + 0.02 if val >= 0 else val - 0.06,
+                f'{val:.3f}', ha='center', va='bottom' if val >= 0 else 'top',
+                fontsize=FONT_SIZE_TICK, fontfamily=ENGLISH_FONT)
+    ax.set_xticks(x)
+    ax.set_xticklabels([MODEL_NAMES_CN[m] for m in MODEL_NAMES], fontfamily=CHINESE_FONT)
+    ax.set_ylim(-1.5, 1)
+    ax.set_ylabel('R²（平均值，mean）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.axhline(0, color='.4', linestyle='--', linewidth=0.6)
+    style_axis(ax)
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / 'fig03_accuracy_r2.png', dpi=DPI, bbox_inches='tight')
+    plt.close()
+    print("已生成: fig03_accuracy_r2.png")
+
+# -----------------------------------------------------------------------------
+# 图4：四种模型预测精度对比（MSE、MAE、RMSE）（第5.1.1节）— 多行一列
+# -----------------------------------------------------------------------------
+def fig04_accuracy_mse_mae_rmse(df):
+    fig, axes = plt.subplots(3, 1, figsize=(COL_WIDTH_INCH, FIG_H_PANEL * 3))
+    metrics = [('MSE', '均方误差', 'MSE'), ('MAE', '平均绝对误差', 'MAE'), ('RMSE', '均方根误差', 'RMSE')]
+    for idx, (col, cn_name, abbr) in enumerate(metrics):
         ax = axes[idx]
-        
-        if metric == 'R2':
-            # R²值越大越好，降序排列
-            model_metric = df.groupby('model')[metric].mean().sort_values(ascending=False)
-        else:
-            # 误差指标越小越好，升序排列
-            model_metric = df.groupby('model')[metric].mean().sort_values(ascending=True)
-        
-        # 统一使用垂直柱状图
-        bars = ax.bar(range(len(model_metric)), model_metric.values,
-                     color=[COLORS[m] for m in model_metric.index])
-        
-        # 添加数值标签
-        for i, (bar, val) in enumerate(zip(bars, model_metric.values)):
-            if metric == 'R2':
-                ax.text(bar.get_x() + bar.get_width()/2, val + 0.01,
-                       f'{val:.3f}', ha='center', va='bottom',
-                       fontsize=FONT_SIZE_TICK, fontfamily=ENGLISH_FONT, fontweight='bold')
-            else:
-                ax.text(bar.get_x() + bar.get_width()/2, val + val*0.02,
-                       f'{val:.4f}', ha='center', va='bottom',
-                       fontsize=FONT_SIZE_TICK, fontfamily=ENGLISH_FONT, fontweight='bold')
-        
-        ax.set_xticks(range(len(model_metric)))
-        ax.set_xticklabels([MODEL_NAMES_CN[m] for m in model_metric.index],
-                          fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-        ax.set_ylabel(title, fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-        ax.set_title(f'({chr(97+idx)}) {title}', fontsize=FONT_SIZE_TITLE,
-                    fontfamily=CHINESE_FONT, fontweight='bold', loc='left')
-        set_ticklabels_bold(ax)
-        ax.grid(axis='y', alpha=0.3)
-    
-    plt.suptitle('四种模型预测精度对比', fontsize=FONT_SIZE_SUPTITLE,
-                fontfamily=CHINESE_FONT, fontweight='bold', y=0.995)
+        model_metric = df.groupby('model')[col].mean().reindex(MODEL_NAMES)
+        x = np.arange(4)
+        vals = model_metric.values
+        bars = ax.bar(x, vals, color=[COLORS[m] for m in MODEL_NAMES], edgecolor='.3', linewidth=0.5, width=0.65)
+        for bar, val in zip(bars, vals):
+            ax.text(bar.get_x() + bar.get_width()/2, val + val*0.02, f'{val:.4f}',
+                    ha='center', va='bottom', fontsize=FONT_SIZE_TICK - 1, fontfamily=ENGLISH_FONT)
+        ax.set_xticks(x)
+        ax.set_xticklabels([MODEL_NAMES_CN[m] for m in MODEL_NAMES], fontfamily=CHINESE_FONT)
+        ax.set_ylabel(f'{cn_name}（{abbr}）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+        ax.set_ylim(0, max(vals) * 1.2 if max(vals) > 0 else 0.01)
+        style_axis(ax, f'({chr(97+idx)})')
     plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / 'figure1_model_accuracy_comparison.png', dpi=DPI, bbox_inches='tight')
+    plt.savefig(OUTPUT_DIR / 'fig04_accuracy_mse_mae_rmse.png', dpi=DPI, bbox_inches='tight')
     plt.close()
-    print("已生成: figure1_model_accuracy_comparison.png")
+    print("已生成: fig04_accuracy_mse_mae_rmse.png")
 
-def figure2_time_scale_impact(df):
-    """
-    图2：时间尺度对预测性能的影响
-    数据来源：experiment_summary.csv
-    - 序列长度影响：按seq_len分组，计算各模型的平均R²值
-    - 预测长度影响：按pred_len分组，计算各模型的平均R²值
-    展示2个子图：序列长度影响、预测长度影响
-    """
-    fig, axes = plt.subplots(2, 1, figsize=(10, 10))
-    
-    # 子图1：序列长度影响
-    ax1 = axes[0]
-    for model in MODEL_NAMES:
-        model_data = df[df['model'] == model]
-        seq_r2 = model_data.groupby('seq_len')['R2'].mean()
-        seq_r2 = seq_r2.reindex(SEQ_LENGTHS)
-        
-        ax1.plot(SEQ_LENGTHS, seq_r2.values, marker='o', linewidth=2,
-                markersize=8, label=MODEL_NAMES_CN[model], color=COLORS[model])
-    
-    ax1.set_xlabel('序列长度 (步)', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-    ax1.set_ylabel('R²值', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-    ax1.set_title('(a) 序列长度对预测性能的影响', fontsize=FONT_SIZE_TITLE,
-                 fontfamily=CHINESE_FONT, fontweight='bold', loc='left')
-    ax1.set_xticks(SEQ_LENGTHS)
-    ax1.set_xticklabels(SEQ_LABELS, fontsize=FONT_SIZE_TICK, fontfamily=CHINESE_FONT, fontweight='bold')
-    ax1.legend(fontsize=FONT_SIZE_LEGEND, prop={'family': CHINESE_FONT, 'weight': 'bold'})
-    set_ticklabels_bold(ax1)
-    ax1.grid(alpha=0.3)
-    
-    # 子图2：预测长度影响
-    ax2 = axes[1]
-    for model in MODEL_NAMES:
-        model_data = df[df['model'] == model]
-        pred_r2 = model_data.groupby('pred_len')['R2'].mean()
-        pred_r2 = pred_r2.reindex(PRED_LENGTHS)
-        
-        ax2.plot(PRED_LENGTHS, pred_r2.values, marker='s', linewidth=2,
-                markersize=8, label=MODEL_NAMES_CN[model], color=COLORS[model])
-    
-    ax2.set_xlabel('预测长度 (步)', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-    ax2.set_ylabel('R²值', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-    ax2.set_title('(b) 预测长度对预测性能的影响', fontsize=FONT_SIZE_TITLE,
-                 fontfamily=CHINESE_FONT, fontweight='bold', loc='left')
-    ax2.set_xticks(PRED_LENGTHS)
-    ax2.set_xticklabels(PRED_LABELS, fontsize=FONT_SIZE_TICK, fontfamily=CHINESE_FONT, fontweight='bold')
-    ax2.legend(fontsize=FONT_SIZE_LEGEND, prop={'family': CHINESE_FONT, 'weight': 'bold'})
-    set_ticklabels_bold(ax2)
-    ax2.grid(alpha=0.3)
-    
-    plt.suptitle('时间尺度对预测性能的影响', fontsize=FONT_SIZE_SUPTITLE,
-                fontfamily=CHINESE_FONT, fontweight='bold', y=0.995)
+# -----------------------------------------------------------------------------
+# 图5：四种模型推理时间对比（第5.1.2节）
+# -----------------------------------------------------------------------------
+def fig05_inference_time(df):
+    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_SINGLE))
+    model_time = df.groupby('model')['inference_time_ms'].mean().reindex(MODEL_NAMES)
+    vals = model_time.values
+    x = np.arange(4)
+    bars = ax.bar(x, vals, color=[COLORS[m] for m in MODEL_NAMES], edgecolor='.3', linewidth=0.5, width=0.65)
+    for bar, val in zip(bars, vals):
+        ax.text(bar.get_x() + bar.get_width()/2, val + max(vals)*0.02, f'{val:.2f}',
+                ha='center', va='bottom', fontsize=FONT_SIZE_TICK, fontfamily=ENGLISH_FONT)
+    ax.set_xticks(x)
+    ax.set_xticklabels([MODEL_NAMES_CN[m] for m in MODEL_NAMES], fontfamily=CHINESE_FONT)
+    ax.set_ylabel('推理时间（Inference time, ms）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.set_ylim(0, max(vals) * 1.15)
+    style_axis(ax)
     plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / 'figure2_time_scale_impact.png', dpi=DPI, bbox_inches='tight')
+    plt.savefig(OUTPUT_DIR / 'fig05_inference_time.png', dpi=DPI, bbox_inches='tight')
     plt.close()
-    print("已生成: figure2_time_scale_impact.png")
+    print("已生成: fig05_inference_time.png")
 
-def figure3_heatmap_comparison(df):
-    """
-    图3：时间尺度组合热力图对比
-    数据来源：experiment_summary.csv
-    - 对每个模型，创建seq_len × pred_len的R²值矩阵
-    - 使用pivot_table创建透视表：df.pivot_table(values='R2', index='pred_len', columns='seq_len')
-    展示4个子图：每个模型一个热力图
-    """
-    fig, axes = plt.subplots(4, 1, figsize=(10, 16))
-    
+# -----------------------------------------------------------------------------
+# 图6：四种模型内存占用对比（第5.1.2节）
+# -----------------------------------------------------------------------------
+def fig06_memory(df):
+    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_SINGLE))
+    model_mem = df.groupby('model')['memory_usage_mb'].mean().reindex(MODEL_NAMES)
+    vals = np.maximum(model_mem.values, 0.01)
+    x = np.arange(4)
+    bars = ax.bar(x, vals, color=[COLORS[m] for m in MODEL_NAMES], edgecolor='.3', linewidth=0.5, width=0.65)
+    for bar, v in zip(bars, model_mem.values):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(vals)*0.02, f'{v:.1f}',
+                ha='center', va='bottom', fontsize=FONT_SIZE_TICK, fontfamily=ENGLISH_FONT)
+    ax.set_xticks(x)
+    ax.set_xticklabels([MODEL_NAMES_CN[m] for m in MODEL_NAMES], fontfamily=CHINESE_FONT)
+    ax.set_ylabel('内存占用（Memory, MB）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.set_ylim(0, max(vals) * 1.15)
+    style_axis(ax)
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / 'fig06_memory.png', dpi=DPI, bbox_inches='tight')
+    plt.close()
+    print("已生成: fig06_memory.png")
+
+# -----------------------------------------------------------------------------
+# 图7：四种模型训练时间对比（第5.1.2节）
+# -----------------------------------------------------------------------------
+def fig07_training_time(df):
+    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_SINGLE))
+    model_time = df.groupby('model')['training_time_s'].mean().reindex(MODEL_NAMES)
+    vals = model_time.values
+    x = np.arange(4)
+    bars = ax.bar(x, vals, color=[COLORS[m] for m in MODEL_NAMES], edgecolor='.3', linewidth=0.5, width=0.65)
+    for bar, val in zip(bars, vals):
+        ax.text(bar.get_x() + bar.get_width()/2, val + max(vals)*0.02, f'{val:.0f}',
+                ha='center', va='bottom', fontsize=FONT_SIZE_TICK, fontfamily=ENGLISH_FONT)
+    ax.set_xticks(x)
+    ax.set_xticklabels([MODEL_NAMES_CN[m] for m in MODEL_NAMES], fontfamily=CHINESE_FONT)
+    ax.set_ylabel('训练时间（Training time, s）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.set_ylim(0, max(vals) * 1.15)
+    style_axis(ax)
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / 'fig07_training_time.png', dpi=DPI, bbox_inches='tight')
+    plt.close()
+    print("已生成: fig07_training_time.png")
+
+# -----------------------------------------------------------------------------
+# 图8：序列长度对预测性能的影响（第5.2.1节）
+# -----------------------------------------------------------------------------
+def fig08_seq_len_impact(df):
+    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_SINGLE))
+    for model in MODEL_NAMES:
+        md = df[df['model'] == model]
+        seq_r2 = md.groupby('seq_len')['R2'].mean().reindex(SEQ_LENGTHS)
+        ax.plot(SEQ_LENGTHS, seq_r2.values, marker='o', linewidth=1.2, markersize=4,
+                label=MODEL_NAMES_CN[model], color=COLORS[model])
+    ax.set_xlabel('序列长度（Sequence length, 步）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.set_ylabel('R²（决定系数）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.set_xticks(SEQ_LENGTHS)
+    ax.set_xticklabels(['6', '60', '120', '360'], fontfamily=ENGLISH_FONT)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, prop={'family': CHINESE_FONT})
+    style_axis(ax)
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / 'fig08_seq_len_impact.png', dpi=DPI, bbox_inches='tight')
+    plt.close()
+    print("已生成: fig08_seq_len_impact.png")
+
+# -----------------------------------------------------------------------------
+# 图9：预测长度对预测性能的影响（第5.2.2节）
+# -----------------------------------------------------------------------------
+def fig09_pred_len_impact(df):
+    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_SINGLE))
+    for model in MODEL_NAMES:
+        md = df[df['model'] == model]
+        pred_r2 = md.groupby('pred_len')['R2'].mean().reindex(PRED_LENGTHS)
+        ax.plot(PRED_LENGTHS, pred_r2.values, marker='s', linewidth=1.2, markersize=4,
+                label=MODEL_NAMES_CN[model], color=COLORS[model])
+    ax.set_xlabel('预测长度（Prediction length, 步）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.set_ylabel('R²（决定系数）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.set_xticks(PRED_LENGTHS)
+    ax.set_xticklabels(['1', '6', '120', '360'], fontfamily=ENGLISH_FONT)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, prop={'family': CHINESE_FONT})
+    style_axis(ax)
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / 'fig09_pred_len_impact.png', dpi=DPI, bbox_inches='tight')
+    plt.close()
+    print("已生成: fig09_pred_len_impact.png")
+
+# -----------------------------------------------------------------------------
+# 图10：时间尺度组合热力图（第5.2.3节）— 多行一列
+# -----------------------------------------------------------------------------
+def fig10_heatmap(df):
+    fig, axes = plt.subplots(4, 1, figsize=(COL_WIDTH_INCH, FIG_H_PANEL * 4))
     for idx, model in enumerate(MODEL_NAMES):
         ax = axes[idx]
-        model_data = df[df['model'] == model]
-        
-        # 创建透视表
-        pivot = model_data.pivot_table(values='R2', index='pred_len',
-                                      columns='seq_len', aggfunc='mean')
-        pivot = pivot.reindex(PRED_LENGTHS, columns=SEQ_LENGTHS)
-        
-        # 绘制热力图
-        im = ax.imshow(pivot.values, cmap='RdYlGn', aspect='auto', vmin=-0.5, vmax=1.0)
-        
-        # 设置刻度
+        md = df[df['model'] == model]
+        pivot = md.pivot_table(values='R2', index='pred_len', columns='seq_len', aggfunc='mean')
+        pivot = pivot.reindex(PRED_LENGTHS).reindex(columns=SEQ_LENGTHS)
+        im = ax.imshow(pivot.values, cmap=CMAP_heatmap, aspect='auto', vmin=-0.5, vmax=1.0)
         ax.set_xticks(range(len(SEQ_LENGTHS)))
-        ax.set_xticklabels(SEQ_LABELS, fontsize=FONT_SIZE_TICK-1, fontfamily=CHINESE_FONT, fontweight='bold')
+        ax.set_xticklabels(['6', '60', '120', '360'], fontfamily=ENGLISH_FONT, fontsize=FONT_SIZE_TICK - 1)
         ax.set_yticks(range(len(PRED_LENGTHS)))
-        ax.set_yticklabels(PRED_LABELS, fontsize=FONT_SIZE_TICK-1, fontfamily=CHINESE_FONT, fontweight='bold')
-        
-        # 添加数值
+        ax.set_yticklabels(['1', '6', '120', '360'], fontfamily=ENGLISH_FONT, fontsize=FONT_SIZE_TICK - 1)
         for i in range(len(PRED_LENGTHS)):
             for j in range(len(SEQ_LENGTHS)):
-                text = ax.text(j, i, f'{pivot.values[i, j]:.2f}',
-                             ha="center", va="center", color="black",
-                             fontsize=FONT_SIZE_TICK-2, fontfamily=ENGLISH_FONT, fontweight='bold')
-        
-        ax.set_xlabel('序列长度', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-        ax.set_ylabel('预测长度', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-        ax.set_title(f'({chr(97+idx)}) {MODEL_NAMES_CN[model]}', fontsize=FONT_SIZE_TITLE,
-                    fontfamily=CHINESE_FONT, fontweight='bold', loc='left')
-        set_ticklabels_bold(ax)
-        
-        # 为每个子图添加颜色条
-        cbar = plt.colorbar(im, ax=ax, orientation='vertical', pad=0.02)
-        cbar.set_label('R²值', fontsize=FONT_SIZE_LABEL-2, fontfamily=CHINESE_FONT, fontweight='bold')
-    
-    plt.suptitle('时间尺度组合热力图（R²值）', fontsize=FONT_SIZE_SUPTITLE,
-                fontfamily=CHINESE_FONT, fontweight='bold', y=0.995)
+                v = pivot.values[i, j]
+                ax.text(j, i, f'{v:.2f}', ha='center', va='center', fontsize=FONT_SIZE_TICK - 2, fontfamily=ENGLISH_FONT)
+        ax.set_xlabel('序列长度（步）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+        ax.set_ylabel('预测长度（步）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+        style_axis(ax, f'({chr(97+idx)}) {MODEL_NAMES_CN[model]}')
+        cbar = plt.colorbar(im, ax=ax, shrink=0.7)
+        cbar.ax.tick_params(labelsize=FONT_SIZE_TICK - 1)
+        for t in cbar.ax.get_yticklabels():
+            t.set_fontfamily(ENGLISH_FONT)
     plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / 'figure3_heatmap_comparison.png', dpi=DPI, bbox_inches='tight')
+    plt.savefig(OUTPUT_DIR / 'fig10_heatmap.png', dpi=DPI, bbox_inches='tight')
     plt.close()
-    print("已生成: figure3_heatmap_comparison.png")
+    print("已生成: fig10_heatmap.png")
 
-def figure4_tradeoff_analysis(df):
-    """
-    图4：精度-效率权衡分析
-    数据来源：experiment_summary.csv
-    - 散点图：inference_time_ms vs R2（所有64个实验点）
-    - 性能对比：推理时间、内存占用、训练时间的平均值对比
-    展示2个子图：散点图、性能对比柱状图
-    """
-    fig, axes = plt.subplots(2, 1, figsize=(10, 10))
-    
-    # 子图1：精度-效率散点图
-    ax1 = axes[0]
+# -----------------------------------------------------------------------------
+# 图11：精度-效率权衡散点图（第5.4节）
+# -----------------------------------------------------------------------------
+def fig11_tradeoff_scatter(df):
+    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_SINGLE))
     markers = ['o', 's', '^', 'D']
     for idx, model in enumerate(MODEL_NAMES):
-        model_data = df[df['model'] == model]
-        ax1.scatter(model_data['inference_time_ms'], model_data['R2'],
-                   s=100, alpha=0.6, label=MODEL_NAMES_CN[model],
-                   color=COLORS[model], marker=markers[idx], edgecolors='black', linewidths=0.5)
-    
-    ax1.set_xlabel('推理时间 (ms)', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-    ax1.set_ylabel('R²值', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-    ax1.set_title('(a) 精度-效率权衡散点图', fontsize=FONT_SIZE_TITLE,
-                 fontfamily=CHINESE_FONT, fontweight='bold', loc='left')
-    ax1.legend(fontsize=FONT_SIZE_LEGEND, prop={'family': CHINESE_FONT, 'weight': 'bold'})
-    set_ticklabels_bold(ax1)
-    ax1.grid(alpha=0.3)
-    
-    # 子图2：推理时间对比（突出效率差异）
-    ax2 = axes[1]
-    model_time = df.groupby('model')['inference_time_ms'].mean().sort_values(ascending=True)
-    
-    # 统一使用垂直柱状图
-    bars = ax2.bar(range(len(model_time)), model_time.values,
-                   color=[COLORS[m] for m in model_time.index])
-    
-    for i, (bar, val) in enumerate(zip(bars, model_time.values)):
-        ax2.text(bar.get_x() + bar.get_width()/2, val + val*0.02,
-               f'{val:.2f} ms', ha='center', va='bottom',
-               fontsize=FONT_SIZE_TICK, fontfamily=ENGLISH_FONT, fontweight='bold')
-    
-    ax2.set_xticks(range(len(model_time)))
-    ax2.set_xticklabels([MODEL_NAMES_CN[m] for m in model_time.index],
-                        fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-    ax2.set_ylabel('推理时间 (ms)', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-    ax2.set_title('(b) 模型推理时间对比', fontsize=FONT_SIZE_TITLE,
-                 fontfamily=CHINESE_FONT, fontweight='bold', loc='left')
-    set_ticklabels_bold(ax2)
-    ax2.grid(axis='y', alpha=0.3)
-    
-    plt.suptitle('精度-效率权衡分析', fontsize=FONT_SIZE_SUPTITLE,
-                fontfamily=CHINESE_FONT, fontweight='bold', y=0.995)
+        md = df[df['model'] == model]
+        ax.scatter(md['inference_time_ms'], md['R2'], s=28, alpha=0.85,
+                  label=MODEL_NAMES_CN[model], color=COLORS[model], marker=markers[idx],
+                  edgecolors='.3', linewidths=0.4)
+    ax.set_xlabel('推理时间（Inference time, ms）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.set_ylabel('R²（决定系数）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, prop={'family': CHINESE_FONT})
+    style_axis(ax)
     plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / 'figure4_tradeoff_analysis.png', dpi=DPI, bbox_inches='tight')
+    plt.savefig(OUTPUT_DIR / 'fig11_tradeoff_scatter.png', dpi=DPI, bbox_inches='tight')
     plt.close()
-    print("已生成: figure4_tradeoff_analysis.png")
+    print("已生成: fig11_tradeoff_scatter.png")
 
-def figure5_prediction_effects():
-    """
-    图5：关键参数预测效果对比
-    数据来源：PKL文件（如Transformer_60_1_results.pkl等）
-    - y_true_inv：真实值（反归一化后的数据）
-    - y_pred_inv：预测值（反归一化后的数据）
-    - 特征索引：贯入度(0)、推进压力(1)、刀盘转速(18)
-    - 样本范围：测试集的前500个样本
-    展示3个子图：贯入度、推进压力、刀盘转速的预测效果
-    """
+# -----------------------------------------------------------------------------
+# 图12：模型综合性能雷达图（第5.4节）— 多行一列 4 子图
+# -----------------------------------------------------------------------------
+def fig12_radar(df):
+    from math import pi
+    metrics = ['R2', 'inference_time_ms', 'memory_usage_mb', 'training_time_s']
+    metric_names = ['R²', 'Speed', 'Memory', 'Time']
+    def norm_r2(x, lo, hi):
+        return (x - lo) / (hi - lo) if hi != lo else 0.5
+    def norm_inv(x, lo, hi):
+        return 1 - (x - lo) / (hi - lo) if hi != lo else 0.5
+
+    ranges = {m: (df[m].min(), df[m].max()) for m in metrics}
+    fig, axes = plt.subplots(4, 1, figsize=(COL_WIDTH_INCH, FIG_H_PANEL * 4), subplot_kw=dict(projection='polar'))
+    fs_small = max(6, FONT_SIZE_TICK - 2)  # 图12 字体稍小
+    for idx, model in enumerate(MODEL_NAMES):
+        ax = axes[idx]
+        md = df[df['model'] == model]
+        vals = []
+        for m in metrics:
+            v = md[m].mean()
+            if m == 'R2':
+                vals.append(norm_r2(v, ranges[m][0], ranges[m][1]))
+            else:
+                vals.append(norm_inv(v, ranges[m][0], ranges[m][1]))
+        vals += vals[:1]
+        angles = [n / len(metrics) * 2 * pi for n in range(len(metrics))] + [2 * pi]
+        ax.plot(angles, vals, 'o-', linewidth=1.2, color=COLORS[model], markersize=3)
+        ax.fill(angles, vals, alpha=0.2, color=COLORS[model])
+        ax.set_xticks(angles[:-1])
+        ax.set_xticklabels(metric_names, fontsize=fs_small, fontfamily=ENGLISH_FONT)
+        ax.set_ylim(0, 1)
+        ax.set_yticks([1.0])
+        ax.set_yticklabels(['1.0'], fontsize=fs_small, fontfamily=ENGLISH_FONT)
+        ax.set_title(f'({chr(97+idx)}) {MODEL_NAMES_CN[model]}', fontsize=FONT_SIZE_PANEL - 1, fontfamily=ENGLISH_FONT, pad=8)
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / 'fig12_radar.png', dpi=DPI, bbox_inches='tight')
+    plt.close()
+    print("已生成: fig12_radar.png")
+
+# -----------------------------------------------------------------------------
+# 图13/14/15：关键参数预测效果对比（贯入度、推进压力、刀盘转速）（第5.5节）
+# 真实值一条线 + 4种模型预测值各一条线
+# -----------------------------------------------------------------------------
+def _fig_prediction_one_param(feat_name, feat_idx, unit, filename):
     seq_len = PKL_CONFIG['seq_len']
     pred_len = PKL_CONFIG['pred_len']
     start, end = PKL_CONFIG['sample_range']
-    
-    # 从第一个模型的PKL文件中获取特征映射
-    first_data = None
-    for model in MODEL_NAMES:
-        data = load_pkl_data(model, seq_len, pred_len)
-        if data is not None:
-            first_data = data
+    first = None
+    for m in MODEL_NAMES:
+        d = load_pkl_data(m, seq_len, pred_len)
+        if d is not None:
+            first = d
             break
-    
-    if first_data is None:
-        print("警告: 无法加载PKL数据，跳过图5")
+    if first is None:
+        print(f"警告: 无PKL数据，跳过 {filename}")
         return
-    
-    # 从PKL文件中获取特征映射（优先使用PKL文件中的，否则使用默认值）
-    feature_mapping = first_data.get('feature_mapping', {}).get('key_features', PKL_CONFIG['feature_indices'])
-    
-    features = ['贯入度', '推进压力', '刀盘转速']
-    feature_indices = [feature_mapping.get(f, PKL_CONFIG['feature_indices'].get(f, 0)) for f in features]
-    
-    # 获取特征单位（从config或PKL文件）
-    feature_units = []
-    for feat_name in features:
-        feat_idx = feature_mapping.get(feat_name, PKL_CONFIG['feature_indices'].get(feat_name, 0))
-        # 尝试从PKL文件的feature_names中获取单位信息，或使用默认值
-        if 'feature_names' in first_data:
-            # 这里可以根据实际需要添加单位映射
-            unit_map = {'贯入度': '(mm/min)', '推进压力': '(MPa)', '刀盘转速': '(r/min)'}
-            feature_units.append(unit_map.get(feat_name, ''))
-        else:
-            unit_map = {'贯入度': '(mm/min)', '推进压力': '(MPa)', '刀盘转速': '(r/min)'}
-            feature_units.append(unit_map.get(feat_name, ''))
-    
-    fig, axes = plt.subplots(3, 1, figsize=(12, 12))
-    
-    for idx, (feature, feat_idx, unit) in enumerate(zip(features, feature_indices, feature_units)):
-        ax = axes[idx]
-        
-        for model in MODEL_NAMES:
-            data = load_pkl_data(model, seq_len, pred_len)
-            if data is None:
-                continue
-            
-            y_true = data['y_true_inv'][start:end, feat_idx]
-            y_pred = data['y_pred_inv'][start:end, feat_idx]
-            
-            x = range(len(y_true))
-            ax.plot(x, y_true, '--', linewidth=1.5, alpha=0.7,
-                   label=f'{MODEL_NAMES_CN[model]} (真实值)', color=COLORS[model])
-            ax.plot(x, y_pred, '-', linewidth=2,
-                   label=f'{MODEL_NAMES_CN[model]} (预测值)', color=COLORS[model])
-        
-        ax.set_xlabel('样本索引', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-        ax.set_ylabel(f'{feature} {unit}', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-        ax.set_title(f'({chr(97+idx)}) {feature}', fontsize=FONT_SIZE_TITLE,
-                    fontfamily=CHINESE_FONT, fontweight='bold', loc='left')
-        ax.legend(fontsize=FONT_SIZE_LEGEND-2, prop={'family': CHINESE_FONT, 'weight': 'bold'}, ncol=2)
-        set_ticklabels_bold(ax)
-        ax.grid(alpha=0.3)
-    
-    plt.suptitle('关键参数预测效果对比', fontsize=FONT_SIZE_SUPTITLE,
-                fontfamily=CHINESE_FONT, fontweight='bold', y=0.995)
-    plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / 'figure5_prediction_effects.png', dpi=DPI, bbox_inches='tight')
-    plt.close()
-    print("已生成: figure5_prediction_effects.png")
+    y_true = _get_series_from_pkl(first, 'y_true_inv', feat_idx, start, end)
+    if y_true is None or len(y_true) == 0:
+        print(f"警告: 无法提取 {feat_name}，跳过 {filename}")
+        return
 
-def figure6_computation_performance(df):
-    """
-    图6：模型计算性能对比
-    数据来源：experiment_summary.csv
-    - 推理时间：df.groupby('model')['inference_time_ms'].mean()
-    - 内存占用：df.groupby('model')['memory_usage_mb'].mean()
-    - 训练时间：df.groupby('model')['training_time_s'].mean()
-    展示3个子图：推理时间、内存占用、训练时间
-    """
-    fig, axes = plt.subplots(3, 1, figsize=(10, 12))
-    
-    metrics = ['inference_time_ms', 'memory_usage_mb', 'training_time_s']
-    metric_names = ['推理时间', '内存占用', '训练时间']
-    metric_units = ['(ms)', '(MB)', '(秒)']
-    
-    for idx, (metric, name, unit) in enumerate(zip(metrics, metric_names, metric_units)):
-        ax = axes[idx]
-        model_metric = df.groupby('model')[metric].mean().sort_values(ascending=(idx < 2))
-        
-        bars = ax.bar(range(len(model_metric)), model_metric.values,
-                     color=[COLORS[m] for m in model_metric.index])
-        
-        # 添加数值标签
-        for i, (bar, val) in enumerate(zip(bars, model_metric.values)):
-            if idx == 2:  # 训练时间用秒
-                label_text = f'{val:.1f} s'
-            elif idx == 1:  # 内存用MB
-                label_text = f'{val:.0f} MB'
-            else:  # 推理时间用ms
-                label_text = f'{val:.2f} ms'
-            
-            ax.text(bar.get_x() + bar.get_width()/2, val + val*0.02,
-                   label_text, ha='center', va='bottom',
-                   fontsize=FONT_SIZE_TICK, fontfamily=ENGLISH_FONT, fontweight='bold')
-        
-        ax.set_xticks(range(len(model_metric)))
-        ax.set_xticklabels([MODEL_NAMES_CN[m] for m in model_metric.index],
-                          fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-        ax.set_ylabel(f'{name} {unit}', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-        ax.set_title(f'({chr(97+idx)}) {name}', fontsize=FONT_SIZE_TITLE,
-                    fontfamily=CHINESE_FONT, fontweight='bold', loc='left')
-        set_ticklabels_bold(ax)
-        ax.grid(axis='y', alpha=0.3)
-    
-    plt.suptitle('模型计算性能对比', fontsize=FONT_SIZE_SUPTITLE,
-                fontfamily=CHINESE_FONT, fontweight='bold', y=0.995)
+    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_SINGLE))
+    x = np.arange(len(y_true))
+    ax.plot(x, y_true, color=GREY_TRUE, linewidth=1.2, label='真实值', alpha=0.95)
+    for model in MODEL_NAMES:
+        d = load_pkl_data(model, seq_len, pred_len)
+        if d is None:
+            continue
+        y_pred = _get_series_from_pkl(d, 'y_pred_inv', feat_idx, start, end)
+        if y_pred is not None and len(y_pred) == len(y_true):
+            ax.plot(x, y_pred, '-', linewidth=0.9, label=MODEL_NAMES_CN[model], color=COLORS[model], alpha=0.9)
+    ax.set_xlabel('样本索引（Sample index）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.set_ylabel(f'{feat_name} {unit}', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.legend(fontsize=FONT_SIZE_LEGEND, prop={'family': CHINESE_FONT}, loc='upper right', frameon=True)
+    style_axis(ax)
     plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / 'figure6_computation_performance.png', dpi=DPI, bbox_inches='tight')
+    plt.savefig(OUTPUT_DIR / filename, dpi=DPI, bbox_inches='tight')
     plt.close()
-    print("已生成: figure6_computation_performance.png")
+    print(f"已生成: {filename}")
 
-def figure7_error_distribution():
-    """
-    图7：多参数预测误差分布箱线图
-    数据来源：PKL文件（如Transformer_60_1_results.pkl等）
-    - 对每个模型，计算30个参数的MSE值
-    - MSE = mean((y_true_inv[:, feat_idx] - y_pred_inv[:, feat_idx])^2)
-    - 展示30个参数的误差分布
-    """
+def fig13_pred_penetration():
+    _fig_prediction_one_param('贯入度', 0, '(mm/min)', 'fig13_pred_penetration.png')
+
+def fig14_pred_pressure():
+    _fig_prediction_one_param('推进压力（上）', 1, '(MPa)', 'fig14_pred_pressure.png')
+
+def fig15_pred_cutterhead():
+    _fig_prediction_one_param('刀盘转速', 20, '(r/min)', 'fig15_pred_cutterhead.png')
+
+# -----------------------------------------------------------------------------
+# 图16：多参数预测误差分布箱线图（第5.5节）
+# 4个模型，每个模型30个参数的MSE → 4个箱线
+# -----------------------------------------------------------------------------
+def fig16_error_boxplot():
     seq_len = PKL_CONFIG['seq_len']
     pred_len = PKL_CONFIG['pred_len']
-    
-    all_errors = {model: [] for model in MODEL_NAMES}
-    
-    # 加载第一个模型获取特征数量
-    first_data = None
+    n_features = 30
+    data_by_model = {m: [] for m in MODEL_NAMES}
     for model in MODEL_NAMES:
-        data = load_pkl_data(model, seq_len, pred_len)
-        if data is not None:
-            first_data = data
-            break
-    
-    if first_data is None:
-        print("警告: 无法加载PKL数据，跳过图7")
-        return
-    
-    n_features = first_data['y_true_inv'].shape[1]
-    
-    # 计算每个参数的MSE
-    for model in MODEL_NAMES:
-        data = load_pkl_data(model, seq_len, pred_len)
-        if data is None:
+        d = load_pkl_data(model, seq_len, pred_len)
+        if d is None:
             continue
-        
-        y_true = data['y_true_inv']
-        y_pred = data['y_pred_inv']
-        
-        # 计算每个特征的MSE
-        for feat_idx in range(min(30, n_features)):
-            mse = np.mean((y_true[:, feat_idx] - y_pred[:, feat_idx]) ** 2)
-            all_errors[model].append(mse)
-    
-    # 绘制箱线图
-    fig, ax = plt.subplots(figsize=(16, 6))
-    
-    # 准备数据：每个参数一个箱线图，包含4个模型的数据
-    box_data = []
-    for feat_idx in range(min(30, n_features)):
-        feat_errors = []
-        for model in MODEL_NAMES:
-            if len(all_errors[model]) > feat_idx:
-                feat_errors.append(all_errors[model][feat_idx])
-        box_data.append(feat_errors)
-    
-    bp = ax.boxplot(box_data, labels=[f'参数{i+1}' for i in range(len(box_data))],
-                   patch_artist=True, widths=0.6, showmeans=True)
-    
-    # 设置颜色
-    for patch in bp['boxes']:
-        patch.set_facecolor('#3498db')
-        patch.set_alpha(0.7)
-    
-    ax.set_xlabel('参数编号', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT, fontweight='bold')
-    ax.set_ylabel('MSE', fontsize=FONT_SIZE_LABEL, fontfamily=ENGLISH_FONT, fontweight='bold')
-    ax.set_title('多参数预测误差分布箱线图', fontsize=FONT_SIZE_TITLE,
-                fontfamily=CHINESE_FONT, fontweight='bold')
-    ax.tick_params(axis='x', rotation=45, labelsize=FONT_SIZE_TICK-2)
-    set_ticklabels_bold(ax)
-    ax.grid(axis='y', alpha=0.3)
-    
+        y_true = d['y_true_inv']
+        y_pred = d['y_pred_inv']
+        if y_true.ndim == 3:
+            y_true = y_true.reshape(-1, y_true.shape[-1])
+            y_pred = y_pred.reshape(-1, y_pred.shape[-1])
+        for f in range(min(n_features, y_true.shape[1])):
+            mse = np.mean((y_true[:, f] - y_pred[:, f]) ** 2)
+            data_by_model[model].append(mse)
+    if not any(data_by_model[m] for m in MODEL_NAMES):
+        print("警告: 无PKL数据，跳过图16")
+        return
+    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_SINGLE))
+    box_data = [data_by_model[m] for m in MODEL_NAMES if data_by_model[m]]
+    labels = [MODEL_NAMES_CN[m] for m in MODEL_NAMES if data_by_model[m]]
+    colors_list = [COLORS[m] for m in MODEL_NAMES if data_by_model[m]]
+    bp = ax.boxplot(box_data, labels=labels, patch_artist=True, showmeans=True, widths=0.6)
+    for patch, c in zip(bp['boxes'], colors_list):
+        patch.set_facecolor(c)
+        patch.set_alpha(0.75)
+        patch.set_edgecolor('.3')
+    ax.set_ylabel('均方误差（MSE）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
+    ax.set_xticklabels(labels, fontfamily=CHINESE_FONT)
+    style_axis(ax)
     plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / 'figure7_error_distribution.png', dpi=DPI, bbox_inches='tight')
+    plt.savefig(OUTPUT_DIR / 'fig16_error_boxplot.png', dpi=DPI, bbox_inches='tight')
     plt.close()
-    print("已生成: figure7_error_distribution.png")
-
-def figure8_radar_chart(df):
-    """
-    图8：模型综合性能雷达图
-    数据来源：experiment_summary.csv
-    - 选择4个维度：R²、推理速度、内存占用、训练时间
-    - 对每个模型计算平均值，然后归一化到[0,1]范围
-    - R²越大越好，其他越小越好（需要反向归一化）
-    """
-    from math import pi
-    
-    metrics = ['R2', 'inference_time_ms', 'memory_usage_mb', 'training_time_s']
-    metric_names = ['R²', '推理速度', '内存占用', '训练时间']
-    
-    # 归一化函数
-    def normalize_r2(x, min_val, max_val):
-        return (x - min_val) / (max_val - min_val) if max_val != min_val else 0.5
-    
-    def normalize_others(x, min_val, max_val):
-        return 1 - (x - min_val) / (max_val - min_val) if max_val != min_val else 0.5
-    
-    fig, axes = plt.subplots(4, 1, figsize=(10, 16), subplot_kw=dict(projection='polar'))
-    
-    # 计算归一化范围
-    ranges = {}
-    for metric in metrics:
-        ranges[metric] = (df[metric].min(), df[metric].max())
-    
-    for idx, model in enumerate(MODEL_NAMES):
-        ax = axes[idx]
-        model_data = df[df['model'] == model]
-        
-        # 计算平均值并归一化
-        values = []
-        for metric in metrics:
-            mean_val = model_data[metric].mean()
-            if metric == 'R2':
-                norm_val = normalize_r2(mean_val, ranges[metric][0], ranges[metric][1])
-            else:
-                norm_val = normalize_others(mean_val, ranges[metric][0], ranges[metric][1])
-            values.append(norm_val)
-        
-        # 闭合图形
-        values += values[:1]
-        
-        # 角度
-        angles = [n / float(len(metrics)) * 2 * pi for n in range(len(metrics))]
-        angles += angles[:1]
-        
-        ax.plot(angles, values, 'o-', linewidth=2, color=COLORS[model], label=MODEL_NAMES_CN[model])
-        ax.fill(angles, values, alpha=0.25, color=COLORS[model])
-        ax.set_xticks(angles[:-1])
-        ax.set_xticklabels(metric_names, fontsize=FONT_SIZE_TICK, fontfamily=CHINESE_FONT, fontweight='bold')
-        ax.set_ylim(0, 1)
-        ax.set_title(f'({chr(97+idx)}) {MODEL_NAMES_CN[model]}', fontsize=FONT_SIZE_TITLE,
-                     fontfamily=CHINESE_FONT, fontweight='bold', pad=20)
-        set_ticklabels_bold(ax)
-        ax.grid(True)
-    
-    plt.suptitle('模型综合性能雷达图', fontsize=FONT_SIZE_SUPTITLE,
-                fontfamily=CHINESE_FONT, fontweight='bold', y=0.995)
-    plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / 'figure8_radar_chart.png', dpi=DPI, bbox_inches='tight')
-    plt.close()
-    print("已生成: figure8_radar_chart.png")
+    print("已生成: fig16_error_boxplot.png")
 
 # =============================================================================
 # 主函数
 # =============================================================================
-
 def main():
-    """主函数"""
-    print("="*60)
-    print("论文图片生成脚本 - 生成8个最重要的图片")
-    print("="*60)
-    
-    # 设置字体
+    print("=" * 60)
+    print("论文图片生成脚本 - 生成图1～图16")
+    print("=" * 60)
     setup_fonts()
-    
-    # 加载数据
     df = load_data()
-    
-    # 生成8个最重要的图片
-    print("\n开始生成图片...")
-    figure1_model_accuracy_comparison(df)
-    figure2_time_scale_impact(df)
-    figure3_heatmap_comparison(df)
-    figure4_tradeoff_analysis(df)
-    figure5_prediction_effects()
-    figure6_computation_performance(df)
-    figure7_error_distribution()
-    figure8_radar_chart(df)
-    
-    print("\n" + "="*60)
-    print(f"所有图片已生成到: {OUTPUT_DIR}")
-    print("共生成8张图片：")
-    print("  图1：四种模型预测精度对比（4子图）")
-    print("  图2：时间尺度对预测性能的影响（2子图）")
-    print("  图3：时间尺度组合热力图（4子图）")
-    print("  图4：精度-效率权衡分析（2子图）")
-    print("  图5：关键参数预测效果对比（3子图）")
-    print("  图6：模型计算性能对比（3子图）")
-    print("  图7：多参数预测误差分布箱线图")
-    print("  图8：模型综合性能雷达图（4子图）")
-    print("="*60)
+
+    fig01_architecture()
+    fig02_dataset()
+    fig03_accuracy_r2(df)
+    fig04_accuracy_mse_mae_rmse(df)
+    fig05_inference_time(df)
+    fig06_memory(df)
+    fig07_training_time(df)
+    fig08_seq_len_impact(df)
+    fig09_pred_len_impact(df)
+    fig10_heatmap(df)
+    fig11_tradeoff_scatter(df)
+    fig12_radar(df)
+    fig13_pred_penetration()
+    fig14_pred_pressure()
+    fig15_pred_cutterhead()
+    fig16_error_boxplot()
+
+    print("\n" + "=" * 60)
+    print(f"所有图片已保存至: {OUTPUT_DIR}")
+    print("图1～图16 对应论文 论文.md 中图表清单")
+    print("=" * 60)
 
 if __name__ == '__main__':
     main()

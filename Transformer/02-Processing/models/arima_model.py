@@ -68,14 +68,9 @@ class ARIMAModel(BaseModel):
     
     def predict(self, X, pred_len=None):
         """
-        预测
-        
-        Args:
-            X: 输入 (n_samples, seq_len, n_features)
-            pred_len: 预测长度（如果提供，使用它；否则使用self.pred_len）
-        
-        Returns:
-            np.ndarray: 预测结果 (n_samples, pred_len, n_features)
+        预测。为保证与深度学习模型公平对比，每个测试样本使用该样本的输入序列
+        (seq_len) 通过 apply() 更新状态后再 forecast，使 ARIMA 与 LSTM/CNN/Transformer
+        使用相同的输入信息。
         """
         if pred_len is None:
             pred_len = self.pred_len
@@ -83,24 +78,23 @@ class ARIMAModel(BaseModel):
         n_samples = X.shape[0]
         predictions = np.zeros((n_samples, pred_len, self.n_features))
         
-        # 对每个样本和每个特征进行预测
         for sample_idx in range(n_samples):
-            # 使用最后一个时间步的值作为输入
-            last_values = X[sample_idx, -1, :]  # (n_features,)
-            
+            last_values = X[sample_idx, -1, :]
             for feat_idx in range(self.n_features):
                 if self.models.get(feat_idx) is not None:
                     try:
-                        # 使用ARIMA模型预测
-                        # 注意：ARIMA需要历史数据，这里简化处理
-                        # 实际应用中应该维护历史序列
-                        forecast = self.models[feat_idx].forecast(steps=pred_len)
+                        # 使用该样本的输入序列 (长度 seq_len) 作为条件，与深度学习模型对齐
+                        history = np.asarray(X[sample_idx, :, feat_idx], dtype=np.float64)
+                        applied = self.models[feat_idx].apply(history)
+                        forecast = applied.forecast(steps=pred_len)
                         predictions[sample_idx, :, feat_idx] = forecast
-                    except:
-                        # 如果预测失败，使用最后一个值
-                        predictions[sample_idx, :, feat_idx] = last_values[feat_idx]
+                    except Exception:
+                        # 序列过短或 apply 失败时回退为从拟合模型直接 forecast（未使用该样本输入）
+                        try:
+                            predictions[sample_idx, :, feat_idx] = self.models[feat_idx].forecast(steps=pred_len)
+                        except Exception:
+                            predictions[sample_idx, :, feat_idx] = last_values[feat_idx]
                 else:
-                    # 如果模型不存在，使用最后一个值
                     predictions[sample_idx, :, feat_idx] = last_values[feat_idx]
         
         return predictions

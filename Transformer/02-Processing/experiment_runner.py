@@ -91,9 +91,9 @@ class ExperimentRunner:
         self._save_status()
     
     def _log(self, message, level='INFO'):
-        """带时间戳的日志"""
+        """带时间戳的日志（立即刷新以便看到进度）"""
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        print(f"[{timestamp}] [{level}] {message}")
+        print(f"[{timestamp}] [{level}] {message}", flush=True)
     
     def _get_model_wrapper(self, model_name):
         """
@@ -148,10 +148,11 @@ class ExperimentRunner:
         self._log(f"开始实验: {task_key}")
         
         try:
-            # 加载数据
+            # 加载数据（固定种子保证可复现）
             self._log(f"加载数据: seq_len={seq_len}, pred_len={pred_len}")
             data_dict = data_loader.prepare_data_for_experiment(
-                config.DATA_FILE, seq_len, pred_len
+                config.DATA_FILE, seq_len, pred_len,
+                random_seed=config.RANDOM_SEED
             )
             
             # 获取模型包装器
@@ -159,8 +160,9 @@ class ExperimentRunner:
             if model_wrapper is None:
                 raise ValueError(f"模型 {model_name} 未实现或导入失败")
             
-            # 获取模型配置
-            model_config = config.MODEL_CONFIGS.get(model_name, {})
+            # 获取模型配置（注入随机种子以保证可复现）
+            model_config = dict(config.MODEL_CONFIGS.get(model_name, {}))
+            model_config.setdefault('random_seed', config.RANDOM_SEED)
             
             # 记录初始内存
             initial_memory = utils.get_memory_usage()
@@ -313,27 +315,30 @@ class ExperimentRunner:
         
         completed = 0
         failed = 0
+        current = 0
         
         for model_name in config.MODELS:
             for seq_len in config.SEQ_LENGTHS:
                 for pred_len in config.PRED_LENGTHS:
+                    current += 1
+                    task_key = self._get_task_key(model_name, seq_len, pred_len)
+                    self._log(f"[{current}/{total}] 正在运行 {task_key} ...")
+                    t0 = time.perf_counter()
                     result = self.run_single_experiment(
                         model_name, seq_len, pred_len, skip_existing=skip_existing
                     )
-                    
+                    elapsed = time.perf_counter() - t0
                     if result is not None:
                         completed += 1
+                        self._log(f"  完成，耗时 {elapsed:.1f}s，R²={result['metrics']['R2']:.4f}")
                     else:
-                        # 检查是否是跳过还是失败
-                        task_key = self._get_task_key(model_name, seq_len, pred_len)
                         task = self.status['tasks'].get(task_key, {})
                         if task.get('status') == 'failed':
                             failed += 1
-                    
-                    # 每10个实验清理一次内存
-                    if (completed + failed) % 10 == 0:
-                        gc.collect()
-                        self._log(f"进度: {completed + failed}/{total}, 已完成: {completed}, 失败: {failed}")
+                            self._log(f"  失败，耗时 {elapsed:.1f}s: {task.get('error', '')}")
+                        else:
+                            self._log(f"  跳过（已存在），耗时 {elapsed:.1f}s")
+                    gc.collect()
         
         self._log(f"所有实验完成！共 {total} 个，已完成: {completed}, 失败: {failed}")
     
