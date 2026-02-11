@@ -7,3 +7,7 @@
 /AI-MODEL-DEV/01-Preprocessing/data/suzhoudata.csv
 /AI-MODEL-DEV/01-Preprocessing/data_preprocessed.csv
 /AI-MODEL-DEV/01-Preprocessing/data/data_preprocessed.csv
+Transformer-TS/02-Processing/results/
+
+# 大于 50MB 的文件或目录（检索后加入）
+Transformer/02-Processing/results/

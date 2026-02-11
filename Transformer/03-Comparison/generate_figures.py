@@ -39,7 +39,7 @@ FONT_SIZE_TITLE = 10
 FONT_SIZE_LABEL = 9
 FONT_SIZE_TICK = 8
 FONT_SIZE_LEGEND = 8
-FONT_SIZE_PANEL = 10   # 子图标签 (a)(b)(c) 用 Times New Roman Bold
+FONT_SIZE_PANEL = 7    # 子图标签 (a)(b)(c) 用 Times New Roman Bold，字号略小
 
 # 双栏论文：单栏宽约 89 mm = 3.5 inch，全栏 183 mm ≈ 7.2 inch
 COL_WIDTH_INCH = 3.5
@@ -81,6 +81,9 @@ PKL_CONFIG = {
     'feature_indices': {'贯入度': 0, '推进压力': 1, '刀盘转速': 20},
     'sample_range': (0, 500)
 }
+# 图13～16 采用两种代表性配置，避免单一配置偏颇：单步(60,1) + 多步(60,120)
+REP_CONFIGS = [(60, 1), (60, 120)]   # (seq_len, pred_len)
+REP_CONFIG_LABELS = ['(a) 单步预测\nseq=60, pred=1', '(b) 多步预测\nseq=60, pred=120']
 
 def setup_fonts():
     plt.rcParams['font.sans-serif'] = [CHINESE_FONT, 'SimHei', 'DejaVu Sans']
@@ -185,27 +188,15 @@ def fig02_dataset():
     df_num = df[numeric_cols].ffill().bfill()
     n_samples, n_features = df_num.shape
 
-    fig, axes = plt.subplots(2, 1, figsize=(COL_WIDTH_INCH, FIG_H_PANEL * 2))
-    # (a) 样本量与特征数 — 不放 (a) 文字，仅叙述；数字用 Times
-    ax = axes[0]
-    ax.bar([0], [n_samples], color=COLORS['ARIMA'], edgecolor='.3', linewidth=0.6, width=0.5)
-    ax.bar([1], [n_features], color=COLORS['1D-CNN'], edgecolor='.3', linewidth=0.6, width=0.5)
-    ax.set_xticks([0, 1])
-    ax.set_xticklabels(['样本数', '特征数'], fontfamily=CHINESE_FONT)
-    ax.set_ylabel('数量（Number）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
-    style_axis(ax)
-    ax.set_xticklabels(['样本数', '特征数'], fontfamily=CHINESE_FONT)  # 覆盖 style_axis 对 x 刻度的 Times 设置
-
-    # (b) 参数相关性热力图 — 横轴刻度错开避免重叠（间隔显示或旋转）
-    ax = axes[1]
+    # 仅绘制参数相关性热力图（单子图形式）
+    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_PANEL * 1.2))
+    # 参数相关性热力图 — 横轴刻度错开避免重叠（间隔显示或旋转）
     sub = df_num.iloc[:, :min(15, n_features)]
     corr = sub.corr()
     nf = len(sub.columns)
     im = ax.imshow(corr, cmap=CMAP_corr, aspect='auto', vmin=-1, vmax=1)
-    step = max(1, nf // 6)  # 约 6 个刻度，避免重叠
-    xticks = list(range(0, nf, step))
-    if (nf - 1) not in xticks:
-        xticks.append(nf - 1)
+    # 横轴每个刻度都显示
+    xticks = list(range(nf))
     ax.set_xticks(xticks)
     ax.set_yticks(range(nf))
     ax.set_xticklabels([f'F{xt+1}' for xt in xticks], fontfamily=ENGLISH_FONT, fontsize=FONT_SIZE_TICK - 1)
@@ -215,7 +206,7 @@ def fig02_dataset():
     cbar.ax.tick_params(labelsize=FONT_SIZE_TICK)
     for t in cbar.ax.get_yticklabels():
         t.set_fontfamily(ENGLISH_FONT)
-    style_axis(ax, '(b)')
+    # style_axis(ax, '(b)')
 
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / 'fig02_dataset.png', dpi=DPI, bbox_inches='tight')
@@ -236,7 +227,7 @@ def fig03_accuracy_r2(df):
                 fontsize=FONT_SIZE_TICK, fontfamily=ENGLISH_FONT)
     ax.set_xticks(x)
     ax.set_xticklabels([MODEL_NAMES_CN[m] for m in MODEL_NAMES], fontfamily=CHINESE_FONT)
-    ax.set_ylim(-1.5, 1)
+    ax.set_ylim(0, 1)
     ax.set_ylabel('R²（平均值，mean）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
     ax.axhline(0, color='.4', linestyle='--', linewidth=0.6)
     style_axis(ax)
@@ -435,7 +426,7 @@ def fig11_tradeoff_scatter(df):
 def fig12_radar(df):
     from math import pi
     metrics = ['R2', 'inference_time_ms', 'memory_usage_mb', 'training_time_s']
-    metric_names = ['R²', 'Speed', 'Memory', 'Time']
+    metric_names = ['R²', '推理速度', '内存', '训练时间']
     def norm_r2(x, lo, hi):
         return (x - lo) / (hi - lo) if hi != lo else 0.5
     def norm_inv(x, lo, hi):
@@ -459,11 +450,11 @@ def fig12_radar(df):
         ax.plot(angles, vals, 'o-', linewidth=1.2, color=COLORS[model], markersize=3)
         ax.fill(angles, vals, alpha=0.2, color=COLORS[model])
         ax.set_xticks(angles[:-1])
-        ax.set_xticklabels(metric_names, fontsize=fs_small, fontfamily=ENGLISH_FONT)
+        ax.set_xticklabels(metric_names, fontsize=fs_small, fontfamily=CHINESE_FONT)
         ax.set_ylim(0, 1)
         ax.set_yticks([1.0])
-        ax.set_yticklabels(['1.0'], fontsize=fs_small, fontfamily=ENGLISH_FONT)
-        ax.set_title(f'({chr(97+idx)}) {MODEL_NAMES_CN[model]}', fontsize=FONT_SIZE_PANEL - 1, fontfamily=ENGLISH_FONT, pad=8)
+        ax.set_yticklabels(['1.0'], fontsize=fs_small, fontfamily=CHINESE_FONT)
+        ax.set_title(f'({chr(97+idx)}) {MODEL_NAMES_CN[model]}', fontsize=FONT_SIZE_PANEL - 1, fontfamily=CHINESE_FONT, pad=8)
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / 'fig12_radar.png', dpi=DPI, bbox_inches='tight')
     plt.close()
@@ -471,90 +462,102 @@ def fig12_radar(df):
 
 # -----------------------------------------------------------------------------
 # 图13/14/15：关键参数预测效果对比（贯入度、推进压力、刀盘转速）（第5.5节）
-# 真实值一条线 + 4种模型预测值各一条线
+# 两列子图：左 单步(60,1)，右 多步(60,120)，避免单一配置偏颇
 # -----------------------------------------------------------------------------
-def _fig_prediction_one_param(feat_name, feat_idx, unit, filename):
-    seq_len = PKL_CONFIG['seq_len']
-    pred_len = PKL_CONFIG['pred_len']
+def _fig_prediction_one_param_dual(feat_name, feat_idx, unit, filename):
     start, end = PKL_CONFIG['sample_range']
-    first = None
-    for m in MODEL_NAMES:
-        d = load_pkl_data(m, seq_len, pred_len)
-        if d is not None:
-            first = d
-            break
-    if first is None:
-        print(f"警告: 无PKL数据，跳过 {filename}")
-        return
-    y_true = _get_series_from_pkl(first, 'y_true_inv', feat_idx, start, end)
-    if y_true is None or len(y_true) == 0:
-        print(f"警告: 无法提取 {feat_name}，跳过 {filename}")
-        return
-
-    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_SINGLE))
-    x = np.arange(len(y_true))
-    ax.plot(x, y_true, color=GREY_TRUE, linewidth=1.2, label='真实值', alpha=0.95)
-    for model in MODEL_NAMES:
-        d = load_pkl_data(model, seq_len, pred_len)
-        if d is None:
+    fig, axes = plt.subplots(1, 2, figsize=(COL_WIDTH_INCH * 1.1, FIG_H_SINGLE * 0.9))
+    for col, ((seq_len, pred_len), title) in enumerate(zip(REP_CONFIGS, REP_CONFIG_LABELS)):
+        ax = axes[col]
+        first = None
+        for m in MODEL_NAMES:
+            d = load_pkl_data(m, seq_len, pred_len)
+            if d is not None:
+                first = d
+                break
+        if first is None:
+            ax.text(0.5, 0.5, '无数据', ha='center', va='center', transform=ax.transAxes)
+            ax.set_title(title, fontsize=FONT_SIZE_PANEL, fontfamily=CHINESE_FONT)
             continue
-        y_pred = _get_series_from_pkl(d, 'y_pred_inv', feat_idx, start, end)
-        if y_pred is not None and len(y_pred) == len(y_true):
-            ax.plot(x, y_pred, '-', linewidth=0.9, label=MODEL_NAMES_CN[model], color=COLORS[model], alpha=0.9)
-    ax.set_xlabel('样本索引（Sample index）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
-    ax.set_ylabel(f'{feat_name} {unit}', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
-    ax.legend(fontsize=FONT_SIZE_LEGEND, prop={'family': CHINESE_FONT}, loc='upper right', frameon=True)
-    style_axis(ax)
+        y_true = _get_series_from_pkl(first, 'y_true_inv', feat_idx, start, end)
+        if y_true is None or len(y_true) == 0:
+            ax.set_title(title, fontsize=FONT_SIZE_PANEL, fontfamily=CHINESE_FONT)
+            continue
+        x = np.arange(len(y_true))
+        ax.plot(x, y_true, color=GREY_TRUE, linewidth=1.0, label='真实值', alpha=0.95)
+        for model in MODEL_NAMES:
+            d = load_pkl_data(model, seq_len, pred_len)
+            if d is None:
+                continue
+            y_pred = _get_series_from_pkl(d, 'y_pred_inv', feat_idx, start, end)
+            if y_pred is not None and len(y_pred) == len(y_true):
+                ax.plot(x, y_pred, '-', linewidth=0.8, label=MODEL_NAMES_CN[model], color=COLORS[model], alpha=0.9)
+        ax.set_title(title, fontsize=FONT_SIZE_PANEL, fontfamily=CHINESE_FONT)
+        ax.set_xlabel('样本索引', fontsize=FONT_SIZE_LABEL - 1, fontfamily=CHINESE_FONT)
+        ax.set_ylabel(f'{feat_name} {unit}', fontsize=FONT_SIZE_LABEL - 1, fontfamily=CHINESE_FONT)
+        ax.legend(fontsize=FONT_SIZE_LEGEND - 1, prop={'family': CHINESE_FONT}, loc='upper right', frameon=True)
+        style_axis(ax)
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / filename, dpi=DPI, bbox_inches='tight')
     plt.close()
     print(f"已生成: {filename}")
 
 def fig13_pred_penetration():
-    _fig_prediction_one_param('贯入度', 0, '(mm/min)', 'fig13_pred_penetration.png')
+    _fig_prediction_one_param_dual('贯入度', 0, '(mm/min)', 'fig13_pred_penetration.png')
 
 def fig14_pred_pressure():
-    _fig_prediction_one_param('推进压力（上）', 1, '(MPa)', 'fig14_pred_pressure.png')
+    _fig_prediction_one_param_dual('推进压力（上）', 1, '(MPa)', 'fig14_pred_pressure.png')
 
 def fig15_pred_cutterhead():
-    _fig_prediction_one_param('刀盘转速', 20, '(r/min)', 'fig15_pred_cutterhead.png')
+    _fig_prediction_one_param_dual('刀盘转速', 20, '(r/min)', 'fig15_pred_cutterhead.png')
 
 # -----------------------------------------------------------------------------
 # 图16：多参数预测误差分布箱线图（第5.5节）
-# 4个模型，每个模型30个参数的MSE → 4个箱线
+# 两列：左 单步(60,1)，右 多步(60,120)，与图13～15一致，避免单一配置偏颇
 # -----------------------------------------------------------------------------
 def fig16_error_boxplot():
-    seq_len = PKL_CONFIG['seq_len']
-    pred_len = PKL_CONFIG['pred_len']
     n_features = 30
-    data_by_model = {m: [] for m in MODEL_NAMES}
-    for model in MODEL_NAMES:
-        d = load_pkl_data(model, seq_len, pred_len)
-        if d is None:
+    fig, axes = plt.subplots(1, 2, figsize=(COL_WIDTH_INCH * 1.1, FIG_H_SINGLE * 0.9))
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor='gray', alpha=0.5, edgecolor='.3', label='箱体：25%～75%分位'),
+        Line2D([0], [0], color='.3', linewidth=2, label='横线：中位数'),
+        Line2D([0], [0], marker='^', color='w', markerfacecolor='green', markeredgecolor='green', markersize=5, linestyle='None', label='三角：均值'),
+        Line2D([0], [0], marker='o', color='w', markerfacecolor='none', markeredgecolor='.5', markersize=4, linestyle='None', label='圆圈：异常值'),
+    ]
+    for col, ((seq_len, pred_len), title) in enumerate(zip(REP_CONFIGS, REP_CONFIG_LABELS)):
+        ax = axes[col]
+        data_by_model = {m: [] for m in MODEL_NAMES}
+        for model in MODEL_NAMES:
+            d = load_pkl_data(model, seq_len, pred_len)
+            if d is None:
+                continue
+            y_true = d['y_true_inv']
+            y_pred = d['y_pred_inv']
+            if y_true.ndim == 3:
+                y_true = y_true.reshape(-1, y_true.shape[-1])
+                y_pred = y_pred.reshape(-1, y_pred.shape[-1])
+            for f in range(min(n_features, y_true.shape[1])):
+                mse = np.mean((y_true[:, f] - y_pred[:, f]) ** 2)
+                data_by_model[model].append(mse)
+        if not any(data_by_model[m] for m in MODEL_NAMES):
+            ax.text(0.5, 0.5, '无数据', ha='center', va='center', transform=ax.transAxes)
+            ax.set_title(title, fontsize=FONT_SIZE_PANEL, fontfamily=CHINESE_FONT)
             continue
-        y_true = d['y_true_inv']
-        y_pred = d['y_pred_inv']
-        if y_true.ndim == 3:
-            y_true = y_true.reshape(-1, y_true.shape[-1])
-            y_pred = y_pred.reshape(-1, y_pred.shape[-1])
-        for f in range(min(n_features, y_true.shape[1])):
-            mse = np.mean((y_true[:, f] - y_pred[:, f]) ** 2)
-            data_by_model[model].append(mse)
-    if not any(data_by_model[m] for m in MODEL_NAMES):
-        print("警告: 无PKL数据，跳过图16")
-        return
-    fig, ax = plt.subplots(figsize=(COL_WIDTH_INCH, FIG_H_SINGLE))
-    box_data = [data_by_model[m] for m in MODEL_NAMES if data_by_model[m]]
-    labels = [MODEL_NAMES_CN[m] for m in MODEL_NAMES if data_by_model[m]]
-    colors_list = [COLORS[m] for m in MODEL_NAMES if data_by_model[m]]
-    bp = ax.boxplot(box_data, labels=labels, patch_artist=True, showmeans=True, widths=0.6)
-    for patch, c in zip(bp['boxes'], colors_list):
-        patch.set_facecolor(c)
-        patch.set_alpha(0.75)
-        patch.set_edgecolor('.3')
-    ax.set_ylabel('均方误差（MSE）', fontsize=FONT_SIZE_LABEL, fontfamily=CHINESE_FONT)
-    ax.set_xticklabels(labels, fontfamily=CHINESE_FONT)
-    style_axis(ax)
+        box_data = [data_by_model[m] for m in MODEL_NAMES if data_by_model[m]]
+        labels = [MODEL_NAMES_CN[m] for m in MODEL_NAMES if data_by_model[m]]
+        colors_list = [COLORS[m] for m in MODEL_NAMES if data_by_model[m]]
+        bp = ax.boxplot(box_data, labels=labels, patch_artist=True, showmeans=True, widths=0.6)
+        for patch, c in zip(bp['boxes'], colors_list):
+            patch.set_facecolor(c)
+            patch.set_alpha(0.75)
+            patch.set_edgecolor('.3')
+        ax.set_title(title, fontsize=FONT_SIZE_PANEL, fontfamily=CHINESE_FONT)
+        ax.set_ylabel('均方误差（MSE）', fontsize=FONT_SIZE_LABEL - 1, fontfamily=CHINESE_FONT)
+        ax.set_xticklabels(labels, fontfamily=CHINESE_FONT)
+        style_axis(ax)
+    axes[0].legend(handles=legend_elements, loc='upper right', fontsize=FONT_SIZE_LEGEND - 2, prop={'family': CHINESE_FONT})
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / 'fig16_error_boxplot.png', dpi=DPI, bbox_inches='tight')
     plt.close()

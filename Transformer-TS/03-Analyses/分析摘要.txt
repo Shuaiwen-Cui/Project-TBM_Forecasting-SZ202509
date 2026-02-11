@@ -1,0 +1,14 @@
+Transformer-TS 分析摘要（供论文写作引用）
+==================================================
+
+共 20 组实验（seq_len × pred_len）。
+
+最佳 R² = 0.8920，对应 seq_len=120, pred_len=1；MSE = 0.079955，训练时间 = 528.6 s。
+
+最差 R² = -0.4468，对应 seq_len=360, pred_len=360。
+
+图表输出：
+  图: E:\PROJ\Project-TBM_Forecasting-SZ202509\Transformer-TS\03-Analyses\figures
+  表: E:\PROJ\Project-TBM_Forecasting-SZ202509\Transformer-TS\03-Analyses\tables
+
+图 1 数据集相关性；图 2 精度（R²/MSE/MAE/RMSE）；图 3 计算性能；图 4 R² 三维曲面；图 5 R² 热力图；图 6 精度-效率权衡；图 7 预测曲线。
