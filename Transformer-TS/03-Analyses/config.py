@@ -45,8 +45,13 @@ COLOR_SECOND = "#2ca02c"
 # 代表性配置（用于精度-效率等）
 REP_CONFIGS = [(60, 1), (60, 120)]
 SAMPLE_RANGE = (0, 500)
-# 预测曲线：图7～10 固定一个物理量（贯入度），每图固定 pred_len，五子图对应 seq_len=6,30,60,120,360
-# 图7: pred_len=1；图8: pred_len=6；图9: pred_len=120；图10: pred_len=360
-PREDICTION_CURVE_PRED_LENS = [1, 6, 120, 360]  # 图7/8/9/10 对应的预测长度
-# 图7～10 使用的物理量（特征索引, 特征名称），统一用贯入度
-PREDICTION_FEATURE_SINGLE = (0, "贯入度")
+# 预测曲线：图8～11 每图固定 pred_len 与一个特征，五子图对应 seq_len=6,30,60,120,360
+PREDICTION_CURVE_PRED_LENS = [1, 6, 120, 360]  # 图8/9/10/11 对应的预测长度
+# 图8～11 每图选用一个特征（特征索引, 特征名称），与 data_preprocessed 列顺序一致
+# 0贯入度 13推进油缸总推力 21刀盘扭矩 20刀盘转速
+PREDICTION_FEATURES_BY_FIG = [
+    (0, "贯入度"),           # 图8
+    (13, "推进油缸总推力"),  # 图9
+    (21, "刀盘扭矩"),        # 图10
+    (20, "刀盘转速"),        # 图11
+]

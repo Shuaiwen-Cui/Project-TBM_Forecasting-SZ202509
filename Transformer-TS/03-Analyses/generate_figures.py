@@ -49,7 +49,7 @@ from config import (
     COLOR_BAR_EDGE,
     COLOR_PRED,
     PREDICTION_CURVE_PRED_LENS,
-    PREDICTION_FEATURE_SINGLE,
+    PREDICTION_FEATURES_BY_FIG,
 )
 from load_utils import load_summary_csv, load_pkl, get_series_from_pkl, get_feature_names_from_preprocessed
 
@@ -257,15 +257,18 @@ def fig06_tradeoff(df):
         c = pred_len_to_color[pred_lens[i]]
         m = seq_len_to_marker[seq_lens[i]]
         ax.scatter(x[i], y[i], c=c, edgecolors="white", linewidths=0.5, s=72, marker=m, alpha=0.9, zorder=3)
-    # 图例：预测长度（颜色） + 序列长度（形状），共 9 项，紧凑排列
+    # 图例：预测长度（颜色） + 序列长度（形状），放在图框下方、图外
     pred_handles = [plt.Line2D([0], [0], marker="o", color="w", markerfacecolor=_PRED_LEN_COLORS[i], markeredgecolor="white", markersize=7, label=f"预测长度 {p}") for i, p in enumerate(PRED_LENGTHS)]
     seq_handles = [plt.Line2D([0], [0], marker=_SEQ_LEN_MARKERS[i], color="w", markerfacecolor="gray", markeredgecolor="white", markersize=6, label=f"序列长度 {s}") for i, s in enumerate(SEQ_LENGTHS)]
-    leg = ax.legend(handles=pred_handles + seq_handles, loc="lower right", ncol=2, fontsize=FONT_SIZE_TICK - 1, prop=FONT_CN, framealpha=0.92, columnspacing=1.2, handletextpad=1)
     ax.set_xlabel("训练时间 (s)", fontsize=FONT_SIZE_LABEL, fontproperties=FONT_CN)
     ax.set_ylabel("R²", fontsize=FONT_SIZE_LABEL, fontfamily=ENGLISH_FONT)
     ax.set_title("精度-效率权衡", fontsize=FONT_SIZE_PANEL, fontproperties=FONT_CN)
     style_axis(ax)
     plt.tight_layout()
+    # 为图例预留底部空间，图例置于图框下方（图外），横向宽度与主图对齐
+    fig.subplots_adjust(bottom=0.26)
+    # bbox_to_anchor=(0, y, 1, h) 表示图例占满主图横向范围 [0,1]，mode="expand" 使图例框横向拉满
+    leg = ax.legend(handles=pred_handles + seq_handles, loc="upper center", bbox_to_anchor=(0, -0.32, 1, 0.12), ncol=2, mode="expand", fontsize=FONT_SIZE_TICK - 1, prop=FONT_CN, framealpha=0.92, columnspacing=1.2, handletextpad=1)
     plt.savefig(OUTPUT_DIR / "fig07_tradeoff.png", dpi=DPI, bbox_inches="tight")
     plt.close()
     print("已生成: fig07_tradeoff.png（图7）")
@@ -289,11 +292,8 @@ def _draw_prediction_curves_fixed_pred_len(feat_idx, feat_name, pred_len, figpat
             ax.set_title(f"输入长度 = {seq_len}", fontsize=FONT_SIZE_PANEL, fontproperties=FONT_CN)
             style_axis(ax)
             continue
-        names = d.get("feature_names") or d.get("feature_mapping")
-        if names and isinstance(names, (list, tuple)) and feat_idx < len(names):
-            ylabel = names[feat_idx] if isinstance(names[feat_idx], str) else feat_name
-        else:
-            ylabel = feat_name
+        # 纵轴标题统一用当前图对应的特征名 feat_name（与 PREDICTION_FEATURES_BY_FIG 一致）
+        ylabel = feat_name
         y_true = get_series_from_pkl(d, "y_true_inv", feat_idx, start, end)
         y_pred = get_series_from_pkl(d, "y_pred_inv", feat_idx, start, end)
         if y_true is None or y_pred is None or len(y_true) == 0:
@@ -307,17 +307,16 @@ def _draw_prediction_curves_fixed_pred_len(feat_idx, feat_name, pred_len, figpat
         ax.set_xlabel("样本序号", fontsize=FONT_SIZE_LABEL - 1, fontproperties=FONT_CN)
         ax.set_ylabel(ylabel, fontsize=FONT_SIZE_LABEL - 1, fontproperties=FONT_CN)
         ax.set_title(f"输入长度 = {seq_len}", fontsize=FONT_SIZE_PANEL, fontproperties=FONT_CN)
-        ax.legend(fontsize=FONT_SIZE_LEGEND - 1, prop=FONT_CN)
+        ax.legend(fontsize=FONT_SIZE_LEGEND - 1, prop=FONT_CN, loc="lower right")
         style_axis(ax)
-    plt.suptitle(f"{suptitle_prefix}（预测长度 = {pred_len}，测试集前 500 样本）", fontsize=FONT_SIZE_LABEL, fontproperties=FONT_CN, y=1.02)
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / figpath, dpi=DPI, bbox_inches="tight")
     plt.close()
 
 
 def fig07_prediction_curves():
-    """图7：贯入度，预测长度=1，五子图为输入长度 6/30/60/120/360"""
-    feat_idx, feat_name = PREDICTION_FEATURE_SINGLE
+    """图8：贯入度，预测长度=1"""
+    feat_idx, feat_name = PREDICTION_FEATURES_BY_FIG[0]
     pred_len = PREDICTION_CURVE_PRED_LENS[0]
     _draw_prediction_curves_fixed_pred_len(
         feat_idx, feat_name, pred_len,
@@ -328,8 +327,8 @@ def fig07_prediction_curves():
 
 
 def fig08_prediction_curves():
-    """图8：贯入度，预测长度=6，五子图为输入长度 6/30/60/120/360"""
-    feat_idx, feat_name = PREDICTION_FEATURE_SINGLE
+    """图9：推进油缸总推力，预测长度=6"""
+    feat_idx, feat_name = PREDICTION_FEATURES_BY_FIG[1]
     pred_len = PREDICTION_CURVE_PRED_LENS[1]
     _draw_prediction_curves_fixed_pred_len(
         feat_idx, feat_name, pred_len,
@@ -340,8 +339,8 @@ def fig08_prediction_curves():
 
 
 def fig09_prediction_curves():
-    """图9：贯入度，预测长度=120，五子图为输入长度 6/30/60/120/360"""
-    feat_idx, feat_name = PREDICTION_FEATURE_SINGLE
+    """图10：刀盘扭矩，预测长度=120"""
+    feat_idx, feat_name = PREDICTION_FEATURES_BY_FIG[2]
     pred_len = PREDICTION_CURVE_PRED_LENS[2]
     _draw_prediction_curves_fixed_pred_len(
         feat_idx, feat_name, pred_len,
@@ -352,8 +351,8 @@ def fig09_prediction_curves():
 
 
 def fig10_prediction_curves():
-    """图10：贯入度，预测长度=360，五子图为输入长度 6/30/60/120/360"""
-    feat_idx, feat_name = PREDICTION_FEATURE_SINGLE
+    """图11：刀盘转速，预测长度=360"""
+    feat_idx, feat_name = PREDICTION_FEATURES_BY_FIG[3]
     pred_len = PREDICTION_CURVE_PRED_LENS[3]
     _draw_prediction_curves_fixed_pred_len(
         feat_idx, feat_name, pred_len,
