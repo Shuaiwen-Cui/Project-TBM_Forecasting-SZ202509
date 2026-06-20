@@ -1,5 +1,9 @@
 .DS_Store
 *.npy
+*.pkl
+*.pickle
+
+# 大型原始/预处理数据
 /SUZHOU/01-Preprocessing/data/suzhoudata.csv
 /SUZHOU/01-Preprocessing/data_preprocessed.csv
 /SUZHOU-deployment/01-Preprocessing/data/suzhoudata.csv
@@ -7,7 +11,22 @@
 /AI-MODEL-DEV/01-Preprocessing/data/suzhoudata.csv
 /AI-MODEL-DEV/01-Preprocessing/data_preprocessed.csv
 /AI-MODEL-DEV/01-Preprocessing/data/data_preprocessed.csv
-Transformer-TS/02-Processing/results/
+**/suzhoudata.csv
+**/data_preprocessed.csv
+# 原始分片监测数据（保留 data 目录下 .py 脚本）
+**/01-Preprocessing/data/**
+!**/01-Preprocessing/data/
+!**/01-Preprocessing/data/*.py
+**/01-Preprocessing/data/__pycache__/
 
-# 大于 50MB 的文件或目录（检索后加入）
+# 实验结果目录（各路径写法均覆盖）
+**/02-Processing/results/
+Transformer-TS/02-Processing/results/
 Transformer/02-Processing/results/
+BASE/AI-REF/Transformer-TS/02-Processing/results/
+BASE/AI-REF/Transformer/02-Processing/results/
+
+# Word 临时文件
+~$*
+*.tmp
+**/~WRL*.tmp
